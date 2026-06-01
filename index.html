@@ -1,0 +1,2145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FoodoJunto</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIwIiBmaWxsPSIjRTg3NzIyIi8+PHRleHQgeT0iNzIiIHg9IjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjU4IiBmb250LWZhbWlseT0iQXJpYWwiPvCfpZg8L3RleHQ+PC9zdmc+"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --cream:#F7F3EC; --ink:#1A1612; --muted:#7A6F63; --border:#DDD5C8;
+  --accent:#C4572A; --accent2:#4A7C59; --card:#FFFFFF; --warn:#B45309;
+  --ff-head:'Playfair Display',Georgia,serif; --ff-body:'DM Sans',sans-serif;
+  --r:12px; --shadow:0 2px 16px rgba(26,22,18,.09);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--ff-body);background:var(--cream);color:var(--ink);min-height:100vh;font-size:18px;line-height:1.6;}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh;}
+.screen.active{display:block;}
+#screen-welcome.active{display:flex;}
+
+/* ── INITIAL LOADER ── */
+#initial-loader{position:fixed;inset:0;background:var(--cream);display:flex;align-items:center;justify-content:center;z-index:999;transition:opacity .3s;}
+#initial-loader.hidden{opacity:0;pointer-events:none;}
+#initial-loader .loader-logo{font-family:var(--ff-head);font-size:32px;font-weight:700;color:var(--ink);}
+#initial-loader .loader-logo span{color:#E87722;}
+
+/* ── WELCOME ── */
+#screen-welcome{background:var(--cream);flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;}
+.welcome-logo{font-family:var(--ff-head);font-size:38px;font-weight:700;color:var(--ink);margin-bottom:6px;text-align:center;}
+.welcome-logo span{color:#E87722;}
+.welcome-sub{font-size:16px;color:var(--muted);margin-bottom:48px;text-align:center;}
+.welcome-btns{display:flex;flex-direction:column;gap:14px;width:100%;max-width:340px;}
+.welcome-divider{text-align:center;font-size:14px;color:var(--muted);margin:4px 0;}
+
+/* ── ONBOARDING CARDS ── */
+.ob-card{background:var(--card);border:1.5px solid var(--border);border-radius:16px;padding:32px 28px;width:100%;max-width:460px;margin:0 auto;}
+.ob-title{font-family:var(--ff-head);font-size:24px;font-weight:600;margin-bottom:6px;}
+.ob-sub{font-size:15px;color:var(--muted);margin-bottom:28px;}
+.ob-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}
+
+/* ── MAIN APP ── */
+.shell{max-width:680px;margin:0 auto;padding:0 16px 80px;}
+
+/* ── HEADER BANNER ── */
+.header-banner{position:relative;height:160px;border-radius:0 0 16px 16px;overflow:hidden;margin-bottom:0;background:var(--ink);}
+.header-banner img{width:100%;height:100%;object-fit:cover;object-position:center top;display:block;}
+.header-banner .banner-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(26,22,18,.15),rgba(26,22,18,.65));}
+.header-banner .banner-content{position:absolute;bottom:0;left:0;right:0;padding:16px 20px 18px;}
+.header-banner .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:rgba(247,243,236,.7);margin-bottom:4px;}
+.header-banner h1{font-family:var(--ff-head);font-size:clamp(22px,5vw,32px);font-weight:700;color:#fff;line-height:1.1;}
+.header-banner .week-badge{display:inline-block;margin-top:6px;padding:3px 10px;background:rgba(247,243,236,.18);color:#fff;font-size:12px;border-radius:20px;border:1px solid rgba(247,243,236,.3);backdrop-filter:blur(4px);}
+.banner-upload-btn{position:absolute;top:12px;right:12px;background:rgba(26,22,18,.5);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--ff-body);backdrop-filter:blur(4px);transition:background .15s;}
+.banner-upload-btn:hover{background:rgba(26,22,18,.75);}
+.banner-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:rgba(247,243,236,.5);font-size:13px;}
+.banner-placeholder .icon{font-size:28px;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;margin:20px 0 28px;background:var(--border);padding:4px;border-radius:10px;}
+.tab{flex:1;padding:9px 0;text-align:center;font-size:14px;font-weight:500;border:none;background:transparent;color:var(--muted);border-radius:7px;cursor:pointer;transition:all .18s;font-family:var(--ff-body);}
+.tab.active{background:var(--card);color:var(--ink);box-shadow:var(--shadow);}
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── SECTION TITLES ── */
+.section-title{font-family:var(--ff-head);font-size:22px;font-weight:600;margin-bottom:18px;}
+.section-sub{font-size:15px;color:var(--muted);margin-top:-12px;margin-bottom:18px;}
+.day-label-sub{font-size:15px;color:var(--muted);margin-top:-14px;margin-bottom:16px;}
+
+/* ── ATTENDANCE ── */
+.attend-block{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:20px;}
+.attend-block .attend-q{font-size:16px;font-weight:500;margin-bottom:12px;}
+.attend-btns{display:flex;gap:8px;}
+.attend-btn{flex:1;padding:9px 0;border-radius:8px;border:1.5px solid var(--border);background:var(--card);font-size:15px;font-weight:500;cursor:pointer;font-family:var(--ff-body);transition:all .15s;text-align:center;}
+.attend-btn:hover{border-color:var(--ink);}
+.attend-btn.yes.active{background:#EBF5EF;border-color:var(--accent2);color:var(--accent2);}
+.attend-btn.no.active{background:#FAEAEA;border-color:#B83030;color:#B83030;}
+
+/* ── OPTION CARDS ── */
+.options-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;}
+@media(max-width:420px){.options-grid{grid-template-columns:1fr;}}
+.option-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 14px 12px;cursor:pointer;transition:all .18s;position:relative;user-select:none;}
+.option-card:hover{border-color:var(--accent);}
+.option-card.selected{border-color:var(--accent);background:#FDF5F1;}
+.option-card.selected::after{content:'✓';position:absolute;top:10px;right:10px;width:20px;height:20px;background:var(--accent);color:#fff;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700;}
+.option-card .dish-name{font-family:var(--ff-head);font-size:17px;font-weight:600;margin-bottom:3px;padding-right:24px;}
+.option-card .dish-meta{font-size:13px;color:var(--muted);}
+.vote-count{display:inline-block;margin-top:6px;font-size:13px;font-weight:500;color:var(--accent);}
+.delete-btn{position:absolute;bottom:10px;right:10px;background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted);padding:2px 4px;border-radius:4px;transition:color .15s;}
+.delete-btn:hover{color:#B83030;}
+
+/* ── NAME CHIPS ── */
+.name-section{margin-bottom:20px;}
+.name-section label{font-size:15px;font-weight:500;display:block;margin-bottom:8px;}
+.name-chips{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{padding:7px 16px;border:1.5px solid var(--border);border-radius:20px;font-size:15px;cursor:pointer;background:var(--card);transition:all .15s;font-family:var(--ff-body);}
+.chip.active{background:var(--ink);color:var(--cream);border-color:var(--ink);}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:11px 24px;border-radius:8px;font-size:16px;font-weight:500;cursor:pointer;border:none;font-family:var(--ff-body);transition:all .15s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#B04A22;}
+.btn-primary:disabled{opacity:.45;cursor:not-allowed;}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);color:var(--ink);}
+.btn-ghost:hover{border-color:var(--ink);}
+.btn-green{background:var(--accent2);color:#fff;}
+.btn-green:hover{background:#3d6b4b;}
+.btn-full{width:100%;justify-content:center;}
+
+/* ── FORM ── */
+.form-group{margin-bottom:16px;}
+.form-group label{font-size:15px;font-weight:500;display:block;margin-bottom:6px;}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:16px;font-family:var(--ff-body);background:var(--card);color:var(--ink);outline:none;transition:border-color .15s;}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--accent);}
+.form-group textarea{resize:vertical;min-height:70px;}
+
+/* ── DAY CHECKBOXES ── */
+.day-checks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
+.day-check{display:none;}
+.day-check-label{padding:8px 16px;border:1.5px solid var(--border);border-radius:20px;font-size:14px;cursor:pointer;background:var(--card);transition:all .15s;user-select:none;}
+.day-check:checked + .day-check-label{background:var(--ink);color:var(--cream);border-color:var(--ink);}
+
+/* ── DIVIDER ── */
+.divider{height:1px;background:var(--border);margin:28px 0;}
+
+/* ── HISTORY ── */
+.history-list{display:flex;flex-direction:column;gap:14px;}
+.history-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;display:flex;}
+.history-card .photo{width:96px;min-height:96px;object-fit:cover;flex-shrink:0;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--muted);}
+.history-card img.photo{display:block;}
+.history-card .info{padding:14px 16px;flex:1;}
+.history-card .info .dish{font-family:var(--ff-head);font-size:18px;font-weight:600;}
+.history-card .info .date{font-size:13px;color:var(--muted);margin-top:2px;}
+.history-card .info .note{font-size:14px;color:var(--muted);margin-top:6px;}
+.tag{display:inline-block;margin-top:8px;padding:2px 10px;background:#F0F7F3;color:var(--accent2);font-size:13px;font-weight:500;border-radius:10px;border:1px solid #C8DFCE;}
+
+/* ── PARENT VIEW ── */
+.winner-card{background:var(--ink);color:var(--cream);border-radius:var(--r);padding:24px 22px;margin-bottom:20px;position:relative;overflow:hidden;}
+.winner-card::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:var(--accent);opacity:.12;}
+.winner-card .label{font-size:13px;letter-spacing:.1em;text-transform:uppercase;opacity:.6;margin-bottom:6px;}
+.winner-card .dish{font-family:var(--ff-head);font-size:26px;font-weight:700;line-height:1.15;}
+.winner-card .votes{font-size:14px;opacity:.7;margin-top:6px;}
+.tally-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+.tally-row .name{font-size:15px;width:120px;flex-shrink:0;}
+.tally-bar-wrap{flex:1;background:var(--border);border-radius:4px;height:8px;}
+.tally-bar{height:8px;border-radius:4px;background:var(--accent);transition:width .5s;}
+.tally-count{font-size:14px;font-weight:500;min-width:20px;text-align:right;color:var(--muted);}
+.attend-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px;}
+.attend-card{background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;}
+.attend-card .member-name{font-size:15px;font-weight:500;margin-bottom:4px;}
+.attend-status{display:inline-block;padding:2px 10px;border-radius:10px;font-size:13px;font-weight:500;}
+.attend-status.yes{background:#EBF5EF;color:var(--accent2);border:1px solid #C8DFCE;}
+.attend-status.no{background:#FAEAEA;color:#B83030;border:1px solid #F5C0C0;}
+.attend-status.pending{background:#F5F4F0;color:var(--muted);border:1px solid var(--border);}
+
+/* ── JOIN CODE DISPLAY ── */
+.code-box{background:var(--ink);color:var(--cream);border-radius:var(--r);padding:20px 24px;text-align:center;margin:20px 0;}
+.code-box .code-label{font-size:13px;opacity:.6;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;}
+.code-box .code{font-family:var(--ff-head);font-size:38px;font-weight:700;letter-spacing:.15em;color:var(--cream);}
+.code-box .code-hint{font-size:13px;opacity:.6;margin-top:6px;}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--ink);color:var(--cream);padding:12px 24px;border-radius:8px;font-size:15px;transition:transform .3s;z-index:200;white-space:nowrap;}
+.toast.show{transform:translateX(-50%) translateY(0);}
+.toast.success{background:var(--accent2);}
+.toast.error{background:#9B3030;}
+
+/* ── MISC ── */
+.empty{text-align:center;padding:40px 24px;color:var(--muted);}
+.empty .icon{font-size:36px;margin-bottom:10px;}
+.empty p{font-size:15px;}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(26,22,18,.45);z-index:100;align-items:center;justify-content:center;padding:16px;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--card);border-radius:var(--r);padding:28px 24px;width:100%;max-width:420px;max-height:90vh;overflow-y:auto;}
+.modal-title{font-family:var(--ff-head);font-size:20px;font-weight:600;margin-bottom:20px;}
+.modal-actions{display:flex;gap:10px;margin-top:20px;}
+.voted-banner{background:#F0F7F3;border:1.5px solid #C8DFCE;border-radius:10px;padding:12px 16px;font-size:15px;color:var(--accent2);margin-bottom:16px;font-weight:500;}
+.row-between{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.upload-area{border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;font-size:14px;color:var(--muted);transition:border-color .15s;}
+.upload-area:hover{border-color:var(--accent);}
+.upload-preview{max-width:100%;max-height:200px;border-radius:8px;margin-top:10px;display:none;}
+.info-row{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin-bottom:20px;}
+.badge{display:inline-block;padding:2px 10px;border-radius:10px;font-size:13px;font-weight:500;background:var(--border);color:var(--muted);}
+.member-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.member-tag{padding:4px 12px;background:var(--cream);border:1.5px solid var(--border);border-radius:20px;font-size:14px;display:flex;align-items:center;gap:6px;}
+.member-tag .remove{cursor:pointer;color:var(--muted);font-size:12px;}
+.member-tag .remove:hover{color:#B83030;}
+.summary-wrap{overflow-x:auto;border:1.5px solid var(--border);border-radius:var(--r);}
+.summary-table{width:100%;border-collapse:collapse;font-size:14px;table-layout:auto;}
+.summary-table th{text-align:center;padding:8px 10px;font-weight:500;font-size:12px;color:var(--muted);border-bottom:1.5px solid var(--border);white-space:nowrap;background:var(--card);}
+.summary-table th.member-head{text-align:left;position:sticky;left:0;z-index:3;background:var(--card);border-right:1.5px solid var(--border);}
+.summary-table th.day-group{background:var(--cream);font-size:12px;font-weight:600;color:var(--ink);border-bottom:1px solid var(--border);text-align:center;}
+.summary-table td{padding:7px 10px;border-bottom:1px solid var(--border);vertical-align:middle;text-align:center;white-space:nowrap;}
+.summary-table td.member-col{text-align:left;font-weight:500;font-size:14px;white-space:nowrap;position:sticky;left:0;z-index:2;background:var(--card);border-right:1.5px solid var(--border);}
+.summary-table tr:last-child td{border-bottom:none;}
+.summary-table .tally-row-summary td{background:var(--cream);font-size:13px;font-weight:500;color:var(--ink);}
+.summary-table .tally-row-summary td.member-col{background:var(--cream);}
+.s-yes{display:inline-block;padding:2px 7px;border-radius:6px;background:#EBF5EF;color:var(--accent2);font-size:12px;font-weight:500;}
+.s-no{display:inline-block;padding:2px 7px;border-radius:6px;background:#FAEAEA;color:#B83030;font-size:12px;font-weight:500;}
+.s-pending{display:inline-block;padding:2px 7px;border-radius:6px;background:var(--border);color:var(--muted);font-size:12px;}
+.s-dish{display:block;font-size:10px;color:var(--accent);font-weight:500;margin-top:2px;max-width:72px;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── SETTINGS PHOTO INLINE CROP ── */
+.photo-settings-block{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:4px;}
+.photo-preview-wrap{position:relative;width:100%;height:160px;overflow:hidden;background:var(--ink);cursor:move;touch-action:none;}
+.photo-preview-wrap img{position:absolute;transform-origin:top left;pointer-events:none;display:block;}
+.photo-preview-empty{width:100%;height:160px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;color:rgba(247,243,236,.5);font-size:13px;background:var(--ink);}
+.photo-crop-overlay{position:absolute;inset:0;border:2.5px dashed rgba(255,255,255,.5);pointer-events:none;}
+.photo-crop-label{position:absolute;top:8px;left:8px;background:rgba(26,22,18,.6);color:#fff;font-size:11px;padding:3px 8px;border-radius:6px;pointer-events:none;}
+.photo-settings-footer{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;gap:10px;flex-wrap:wrap;}
+.photo-zoom-row{display:flex;align-items:center;gap:8px;flex:1;min-width:140px;}
+.photo-zoom-row label{font-size:13px;color:var(--muted);white-space:nowrap;}
+.photo-zoom-row input[type=range]{flex:1;accent-color:var(--accent);}
+
+.save-btn{transition:all .2s;position:sticky;bottom:16px;z-index:10;}
+.save-btn.dirty{background:#E87722;box-shadow:0 4px 16px rgba(232,119,34,.4);transform:scale(1.02);}
+.save-btn.dirty::before{content:'● ';font-size:12px;}
+.unsaved-hint{font-size:13px;color:#E87722;font-weight:500;display:none;margin-bottom:8px;}
+#back-to-top{position:fixed;bottom:24px;right:16px;width:40px;height:40px;border-radius:50%;background:var(--ink);color:var(--cream);border:none;font-size:18px;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:50;box-shadow:0 2px 12px rgba(26,22,18,.25);transition:opacity .2s;}
+#back-to-top.visible{display:flex;}
+#back-to-top:hover{background:var(--accent);}
+.dish-suggestions{margin-top:8px;margin-bottom:4px;}
+.dish-suggestions .ds-label{font-size:12px;color:var(--muted);margin-bottom:6px;}
+.ds-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.ds-chip{padding:5px 12px;background:var(--cream);border:1.5px solid var(--border);border-radius:20px;font-size:13px;cursor:pointer;transition:all .15s;font-family:var(--ff-body);}
+.ds-chip:hover{border-color:var(--accent);background:#FDF5F1;color:var(--accent);}
+.unsaved-hint.show{display:block;}
+
+/* ── HISTORY — day grouped ── */
+.history-day-group{margin-bottom:28px;}
+.history-day-header{font-family:var(--ff-head);font-size:17px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1.5px solid var(--border);}
+.history-day-header .day-date{font-size:13px;color:var(--muted);font-family:var(--ff-body);font-weight:400;}
+.meal-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px;}
+.meal-card-top{display:flex;}
+.meal-icon{width:72px;min-height:72px;flex-shrink:0;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:32px;}
+.meal-icon-img{width:72px;min-height:72px;object-fit:cover;flex-shrink:0;display:block;}
+.meal-info{padding:12px 14px;flex:1;min-width:0;}
+.meal-name{font-family:var(--ff-head);font-size:17px;font-weight:600;margin-bottom:2px;}
+.meal-note-text{font-size:13px;color:var(--muted);margin-top:4px;}
+.meal-card-actions{display:flex;gap:8px;padding:0 14px 12px;justify-content:flex-end;}
+.meal-card-actions button{background:none;border:none;font-size:13px;color:var(--muted);cursor:pointer;padding:3px 6px;border-radius:4px;transition:color .15s;font-family:var(--ff-body);}
+.meal-card-actions .edit-btn:hover{color:var(--accent);}
+.meal-card-actions .del-btn:hover{color:#B83030;}
+/* ── RATINGS ── */
+.ratings-section{padding:10px 14px 14px;border-top:1px solid var(--border);}
+.ratings-label{font-size:13px;font-weight:500;color:var(--muted);margin-bottom:10px;}
+.rating-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.rating-name{font-size:14px;width:72px;flex-shrink:0;}
+.rating-btns{display:flex;gap:4px;}
+.r-btn{padding:4px 10px;border:1.5px solid var(--border);border-radius:20px;font-size:14px;cursor:pointer;background:var(--card);transition:all .15s;font-family:var(--ff-body);}
+.r-btn:hover{border-color:var(--ink);}
+.r-btn.active-up{background:#EBF5EF;border-color:var(--accent2);color:var(--accent2);}
+.r-btn.active-neu{background:#FFF8EC;border-color:#D4A017;color:#8A6800;}
+.r-btn.active-down{background:#FAEAEA;border-color:#B83030;color:#B83030;}
+.taste-section{margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);}
+.taste-label{font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:500;}
+.taste-grid{display:flex;flex-direction:column;gap:8px;}
+.taste-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.taste-name{font-size:14px;color:var(--muted);width:72px;flex-shrink:0;font-weight:500;}
+.taste-btns{display:flex;gap:4px;flex-wrap:wrap;}
+.t-btn{padding:5px 12px;border:1.5px solid var(--border);border-radius:12px;font-size:13px;cursor:pointer;background:var(--card);transition:all .12s;font-family:var(--ff-body);white-space:nowrap;}
+.t-btn:hover{border-color:var(--ink);}
+.t-btn.t-active{background:var(--ink);color:var(--cream);border-color:var(--ink);}
+.ratings-summary{margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);}
+.ratings-summary-label{font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:500;}
+.member-rating-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.mrname{font-size:13px;font-weight:500;width:72px;flex-shrink:0;}
+.overall-badge{font-size:15px;}
+.taste-pills{display:flex;flex-wrap:wrap;gap:4px;}
+.taste-pill{padding:2px 8px;background:var(--cream);border:1px solid var(--border);border-radius:10px;font-size:11px;color:var(--muted);}
+/* ── HISTORY NAME CHIPS ── */
+.history-member-select{margin-bottom:20px;}
+.history-member-select label{font-size:15px;font-weight:500;display:block;margin-bottom:8px;}
+</style>
+</head>
+<body>
+
+<!-- INITIAL LOADER -->
+<div id="initial-loader"><div class="loader-logo">Foodo<span>Junto</span></div></div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 1 — WELCOME
+═══════════════════════════════════════════ -->
+<div id="screen-welcome" class="screen">
+  <div class="welcome-logo">Foodo<span>Junto</span></div>
+  <p class="welcome-sub">Plan weekend & weekday dinners together,<br>as a family.</p>
+  <div class="welcome-btns">
+    <button class="btn btn-primary btn-full" onclick="showScreen('screen-create')">Create a household</button>
+    <div class="welcome-divider">or</div>
+    <button class="btn btn-ghost btn-full" onclick="showScreen('screen-join')">Join with a code</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 2 — CREATE HOUSEHOLD
+═══════════════════════════════════════════ -->
+<div id="screen-create" class="screen">
+  <div class="ob-wrap">
+    <div class="ob-card">
+      <div class="ob-title">Create your household</div>
+      <div class="ob-sub">Set up your family's dinner portal in a few steps.</div>
+
+      <div class="form-group">
+        <label>Family / household name</label>
+        <input type="text" id="create-family-name" placeholder="e.g. The Tans, Rodriguez Family"/>
+      </div>
+
+      <div class="form-group">
+        <label>Family members <span style="font-weight:400;color:var(--muted);font-size:13px;">(type a name and press Enter or comma)</span></label>
+        <input type="text" id="create-member-input" placeholder="e.g. Mum, Dad, Weijing…"/>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button type="button" class="btn btn-ghost" style="padding:8px 16px;font-size:14px;" onclick="(function(){var v=document.getElementById('create-member-input').value.trim();if(v){addCreateMember(v);document.getElementById('create-member-input').value='';}})()">+ Add</button>
+        </div>
+        <div class="member-tags" id="create-member-tags"></div>
+      </div>
+
+      <div class="form-group">
+        <label>Meal days</label>
+        <div class="day-checks">
+          <input type="checkbox" class="day-check" id="d-mon" value="mon"><label class="day-check-label" for="d-mon">Mon</label>
+          <input type="checkbox" class="day-check" id="d-tue" value="tue"><label class="day-check-label" for="d-tue">Tue</label>
+          <input type="checkbox" class="day-check" id="d-wed" value="wed"><label class="day-check-label" for="d-wed">Wed</label>
+          <input type="checkbox" class="day-check" id="d-thu" value="thu"><label class="day-check-label" for="d-thu">Thu</label>
+          <input type="checkbox" class="day-check" id="d-fri" value="fri"><label class="day-check-label" for="d-fri">Fri</label>
+          <input type="checkbox" class="day-check" id="d-sat" value="sat" checked><label class="day-check-label" for="d-sat">Sat</label>
+          <input type="checkbox" class="day-check" id="d-sun" value="sun" checked><label class="day-check-label" for="d-sun">Sun</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Meal types <span style="font-weight:400;color:var(--muted);font-size:13px;">(which meals do you plan together?)</span></label>
+        <div class="day-checks">
+          <input type="checkbox" class="meal-check" id="d-breakfast" value="breakfast"><label class="day-check-label" for="d-breakfast">🌅 Breakfast</label>
+          <input type="checkbox" class="meal-check" id="d-lunch" value="lunch"><label class="day-check-label" for="d-lunch">☀️ Lunch</label>
+          <input type="checkbox" class="meal-check" id="d-dinner" value="dinner" checked><label class="day-check-label" for="d-dinner">🌙 Dinner</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Family photo <span style="font-weight:400;color:var(--muted);font-size:13px;">(appears as header banner)</span></label>
+        <div class="upload-area" id="create-photo-area" onclick="document.getElementById('create-photo-input').click()">
+          📸 Tap to upload your family photo
+          <img id="create-photo-preview" class="upload-preview"/>
+        </div>
+        <input type="file" id="create-photo-input" accept="image/*" style="display:none" onchange="previewBannerPhoto(this,'create-photo-preview','create-photo-area')"/>
+      </div>
+
+      <div class="form-group">
+        <label>Your name</label>
+        <select id="create-your-name"><option value="">— select your name —</option></select>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="createHousehold()">Create household →</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="showScreen('screen-welcome')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 3 — JOIN HOUSEHOLD
+═══════════════════════════════════════════ -->
+<div id="screen-join" class="screen">
+  <div class="ob-wrap">
+    <div class="ob-card">
+      <div class="ob-title">Join a household</div>
+      <div class="ob-sub">Enter the join code your family shared with you.</div>
+      <div class="form-group">
+        <label>Join code</label>
+        <input type="text" id="join-code-input" placeholder="e.g. TAN482" maxlength="8"
+          style="text-transform:uppercase;letter-spacing:.1em;font-size:22px;"
+          oninput="this.value=this.value.toUpperCase()"/>
+      </div>
+      <div id="join-members-wrap" style="display:none">
+        <div class="form-group">
+          <label>Who are you?</label>
+          <select id="join-member-select"><option value="">— select your name —</option></select>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-full" id="join-btn" onclick="joinHousehold()">Find household →</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="showScreen('screen-welcome')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 4 — HOUSEHOLD CREATED (code reveal)
+═══════════════════════════════════════════ -->
+<div id="screen-created" class="screen">
+  <div class="ob-wrap">
+    <div class="ob-card">
+      <div class="ob-title">🎉 Household created!</div>
+      <div class="ob-sub">Share this code with your family so they can join.</div>
+      <div class="code-box">
+        <div class="code-label">Your join code</div>
+        <div class="code" id="reveal-code">——</div>
+        <div class="code-hint">Anyone with this code can join your household</div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="copyCode()">Copy code</button>
+      <button class="btn btn-ghost btn-full" style="margin-top:10px;" onclick="enterApp()">Enter the portal →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN 5 — MAIN APP
+═══════════════════════════════════════════ -->
+<div id="screen-app" class="screen">
+
+  <!-- HEADER BANNER -->
+  <div class="header-banner" id="header-banner">
+    <div id="banner-img-wrap">
+      <div class="banner-placeholder" id="banner-placeholder">
+        <div class="icon">🏠</div>
+        <span>No family photo yet</span>
+      </div>
+      <img id="banner-img" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;"/>
+    </div>
+    <div class="banner-overlay"></div>
+    <div class="banner-content">
+      <div class="eyebrow">FoodoJunto</div>
+      <h1 id="app-family-name">Our Family</h1>
+      <div class="week-badge" id="week-badge">Loading…</div>
+    </div>
+    <div style="position:absolute;top:10px;right:10px;display:flex;gap:8px;">
+      <button class="banner-upload-btn" onclick="document.getElementById('banner-upload-input').click()" title="Change photo">📸</button>
+      <button class="banner-upload-btn" onclick="switchTab('settings',this)" title="Settings" id="settings-icon-btn">⚙️</button>
+    </div>
+    <input type="file" id="banner-upload-input" accept="image/*" style="display:none" onchange="uploadBannerPhoto(this)"/>
+  </div>
+
+  <div class="shell">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('vote',this)">🗳 This Week</button>
+      <button class="tab" onclick="switchTab('parent',this)">👨‍🍳 Parent View</button>
+      <button class="tab" onclick="switchTab('history',this)">📖 History</button>
+    </div>
+
+    <!-- THIS WEEK TAB -->
+    <div id="page-vote" class="page active">
+      <div class="name-section">
+        <label>Who are you? Pick your name first</label>
+        <div class="name-chips" id="name-chips"></div>
+      </div>
+      <div id="dinner-days-container"></div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div id="page-history" class="page">
+      <div class="row-between">
+        <div class="section-title">Meal history</div>
+        <button class="btn btn-green" onclick="openLogDinner()">+ Log meal</button>
+      </div>
+      <div class="history-member-select">
+        <label>Your name (for rating)</label>
+        <div class="name-chips" id="history-name-chips"></div>
+      </div>
+      <div id="history-list"></div>
+    </div>
+
+    <!-- PARENT VIEW TAB -->
+    <div id="page-parent" class="page">
+      <div class="section-title">This week's summary</div>
+      <!-- Sub-tab toggle -->
+      <div style="display:flex;gap:0;margin-bottom:24px;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;">
+        <button id="parent-sub-summary" onclick="switchParentSub('summary')"
+          style="flex:1;padding:10px 0;font-size:15px;font-weight:500;border:none;background:var(--ink);color:var(--cream);cursor:pointer;font-family:var(--ff-body);transition:all .15s;">
+          Summary
+        </button>
+        <button id="parent-sub-detailed" onclick="switchParentSub('detailed')"
+          style="flex:1;padding:10px 0;font-size:15px;font-weight:500;border:none;background:var(--card);color:var(--muted);cursor:pointer;font-family:var(--ff-body);transition:all .15s;border-left:1.5px solid var(--border);">
+          Detailed
+        </button>
+      </div>
+      <!-- SUMMARY VIEW -->
+      <div id="parent-view-summary">
+        <div id="parent-summary-grid"></div>
+      </div>
+      <!-- DETAILED VIEW -->
+      <div id="parent-view-detailed" style="display:none">
+        <div id="parent-days-container"></div>
+        <div class="divider"></div>
+        <div class="section-title" style="font-size:18px;">Recent meals</div>
+        <div id="recent-history" class="history-list"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div id="page-settings" class="page">
+      <div class="section-title">Household settings</div>
+      <div class="form-group">
+        <label>Household name</label>
+        <input type="text" id="settings-name"/>
+      </div>
+      <div class="form-group">
+        <label>Meal days</label>
+        <div class="day-checks" id="settings-day-checks">
+          <input type="checkbox" class="day-check" id="s-mon" value="mon"><label class="day-check-label" for="s-mon">Mon</label>
+          <input type="checkbox" class="day-check" id="s-tue" value="tue"><label class="day-check-label" for="s-tue">Tue</label>
+          <input type="checkbox" class="day-check" id="s-wed" value="wed"><label class="day-check-label" for="s-wed">Wed</label>
+          <input type="checkbox" class="day-check" id="s-thu" value="thu"><label class="day-check-label" for="s-thu">Thu</label>
+          <input type="checkbox" class="day-check" id="s-fri" value="fri"><label class="day-check-label" for="s-fri">Fri</label>
+          <input type="checkbox" class="day-check" id="s-sat" value="sat"><label class="day-check-label" for="s-sat">Sat</label>
+          <input type="checkbox" class="day-check" id="s-sun" value="sun"><label class="day-check-label" for="s-sun">Sun</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Meal types</label>
+        <div class="day-checks" id="settings-meal-checks">
+          <input type="checkbox" class="meal-check" id="s-breakfast" value="breakfast"><label class="day-check-label" for="s-breakfast">🌅 Breakfast</label>
+          <input type="checkbox" class="meal-check" id="s-lunch" value="lunch"><label class="day-check-label" for="s-lunch">☀️ Lunch</label>
+          <input type="checkbox" class="meal-check" id="s-dinner" value="dinner"><label class="day-check-label" for="s-dinner">🌙 Dinner</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Family members</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="settings-member-input" placeholder="Add a member name" style="flex:1;"/>
+          <button class="btn btn-ghost" style="padding:10px 16px;" onclick="addSettingsMember()">Add</button>
+        </div>
+        <div class="member-tags" id="settings-member-tags" style="margin-top:10px;"></div>
+      </div>
+      <div class="form-group">
+        <label>Family photo</label>
+        <div class="photo-settings-block">
+          <div class="photo-preview-wrap" id="settings-crop-wrap">
+            <div class="photo-preview-empty" id="settings-photo-empty">
+              <div style="font-size:28px">🏠</div>
+              <span style="font-size:13px">No photo set</span>
+            </div>
+            <img id="settings-crop-img" src="" alt="" style="display:none"/>
+            <div class="photo-crop-overlay"></div>
+            <div class="photo-crop-label" id="settings-crop-label" style="display:none">Drag to reposition</div>
+          </div>
+          <div class="photo-settings-footer">
+            <div class="photo-zoom-row" id="settings-zoom-row" style="display:none">
+              <label>Zoom</label>
+              <input type="range" id="settings-zoom" min="1" max="3" step="0.01" value="1" oninput="settingsUpdateZoom()"/>
+            </div>
+            <button class="btn btn-ghost" style="padding:8px 16px;font-size:14px;" onclick="document.getElementById('settings-photo-input').click()">📸 Change photo</button>
+            <button class="btn btn-primary" style="padding:8px 16px;font-size:14px;display:none" id="settings-apply-btn" onclick="settingsApplyCrop()">Apply crop</button>
+          </div>
+        </div>
+        <input type="file" id="settings-photo-input" accept="image/*" style="display:none" onchange="settingsLoadPhoto(this)"/>
+        <div style="font-size:13px;color:var(--muted);margin-top:6px;">Drag to reposition · Zoom to scale · Apply crop to save</div>
+      </div>
+      <div class="unsaved-hint" id="unsaved-hint">You have unsaved changes</div>
+      <button class="btn btn-primary save-btn" id="save-settings-btn" onclick="saveSettings()">Save changes</button>
+      <div class="divider"></div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:8px;">Your join code</div>
+      <div class="code-box" style="margin:0 0 12px;">
+        <div class="code" id="settings-join-code" style="font-size:28px;">——</div>
+        <div class="code-hint">Share this with family members</div>
+      </div>
+      <button class="btn btn-ghost" style="font-size:14px;" onclick="copySettingsCode()">Copy join code</button>
+      <div class="divider"></div>
+      <div style="font-size:15px;font-weight:500;margin-bottom:6px;">Leave household</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:14px;">This removes your session from this device only. The household and its data remain intact for other members.</div>
+      <button class="btn" style="background:#FAEAEA;color:#B83030;border:1.5px solid #F5C0C0;font-size:15px;" onclick="exitHousehold()">Exit this household</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD OPTION MODAL -->
+<div class="modal-bg" id="modal-add-option">
+  <div class="modal">
+    <div class="modal-title">Suggest a dish</div>
+    <div class="form-group">
+      <label>Dish / cuisine name</label>
+      <input type="text" id="new-dish-name" placeholder="e.g. Chicken Rendang"/>
+      <div class="dish-suggestions" id="dish-suggestions" style="display:none">
+        <div class="ds-label">Quick pick from past dishes</div>
+        <div class="ds-chips" id="ds-chips"></div>
+      </div>
+    </div>
+    <div class="form-group"><label>Your name</label><select id="new-dish-by"><option value="">— select —</option></select></div>
+    <div class="form-group"><label>Notes (optional)</label><input type="text" id="new-dish-notes" placeholder="e.g. with white rice"/></div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" onclick="submitOption()">Add dish</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-add-option')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG MEAL MODAL -->
+<div class="modal-bg" id="modal-log-dinner">
+  <div class="modal">
+    <div class="modal-title" id="log-modal-title">Log a meal</div>
+    <input type="hidden" id="log-edit-id"/>
+    <div class="form-group">
+      <label>Dish name</label>
+      <input type="text" id="log-dish-name" placeholder="e.g. Nasi Lemak"/>
+      <div id="log-ds-wrap" class="ds-wrap" style="display:none;margin-top:8px;">
+        <div class="ds-label" style="font-size:12px;color:var(--muted);margin-bottom:6px;">Quick pick from past dishes</div>
+        <div class="ds-chips" id="log-ds-chips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+      </div>
+    </div>
+    <div class="form-group"><label>Date</label><input type="date" id="log-date"/></div>
+    <div class="form-group"><label>Notes (optional)</label><textarea id="log-notes" placeholder="Any notes about this meal?"></textarea></div>
+    <div class="form-group">
+      <label>Photo (optional)</label>
+      <div class="upload-area" onclick="document.getElementById('log-photo-input').click()">
+        📸 Tap to upload a photo
+        <img id="log-photo-preview" class="upload-preview"/>
+      </div>
+      <input type="file" id="log-photo-input" accept="image/*" style="display:none" onchange="previewLogPhoto(this)"/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-green" id="log-save-btn" onclick="submitDinnerLog()">Save meal</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-log-dinner')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<button id="back-to-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Back to top">↑</button>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIG — replace with your NEW Supabase project credentials
+// ══════════════════════════════════════════
+const SUPABASE_URL = 'https://ogmtmisjdczazkbvhhtg.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9nbXRtaXNqZGN6YXprYnZoaHRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NDI5OTYsImV4cCI6MjA5MDAxODk5Nn0.XIlALxX_7To--qrCoiHeAP45-1EuwTGyapJt2nPHggs';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ══════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════
+let SESSION = null; // { householdId, memberName, joinCode, familyName, dinnerDays, members }
+let selectedMember = null;
+let selectedOptions = {};
+let voteOptions = {};
+let myVotes = {};
+let myAttendance = {};
+let uploadedLogPhoto = null;
+let addingForDay = null;
+let historyMember = null;
+let historyData = [];
+let createMembers = [];
+let settingsMembers = [];
+
+// ══════════════════════════════════════════
+// BOOT
+// ══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', async () => {
+  // Attach member input listener
+  const memberInput = document.getElementById('create-member-input');
+  if (memberInput) {
+    memberInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ',') {
+        e.preventDefault();
+        const val = this.value.trim().replace(/,$/, '');
+        if (val) addCreateMember(val);
+        this.value = '';
+      }
+    });
+  }
+
+  const saved = localStorage.getItem('dinnerCircleSession');
+  if (saved) {
+    SESSION = JSON.parse(saved);
+    // Deduplicate dinner days in case of stale data
+    if (SESSION.dinnerDays) SESSION.dinnerDays = [...new Set(SESSION.dinnerDays)];
+    if (!SESSION.mealTypes) SESSION.mealTypes = ['dinner'];
+    // Go straight to app — no welcome screen shown at all
+    bootApp();
+    // Silently refresh session data in background
+    refreshSession().then(() => {
+      document.getElementById('app-family-name').textContent = SESSION.familyName;
+      document.getElementById('week-badge').textContent = getWeekBadge();
+      if (SESSION.bannerUrl) {
+        document.getElementById('banner-img').src = SESSION.bannerUrl;
+        document.getElementById('banner-img').style.display = 'block';
+        document.getElementById('banner-placeholder').style.display = 'none';
+      }
+      renderNameChips();
+  renderHistoryNameChips();
+      populateAddOptionSelect();
+    });
+  } else {
+    // First-time visitor — show welcome screen
+    showScreen('screen-welcome');
+  }
+
+  // Hide loader once we've decided which screen to show
+  const loader = document.getElementById('initial-loader');
+  if (loader) {
+    loader.classList.add('hidden');
+    setTimeout(() => loader.style.display = 'none', 350);
+  }
+});
+
+async function refreshSession() {
+  const { data } = await sb.from('households').select('*').eq('id', SESSION.householdId).maybeSingle();
+  if (data) {
+    SESSION.familyName  = data.name;
+    SESSION.dinnerDays  = [...new Set(data.dinner_days || [])];
+    SESSION.mealTypes   = data.meal_types || ['dinner'];
+    SESSION.bannerUrl   = data.banner_url;
+    const { data: mems } = await sb.from('household_members').select('name').eq('household_id', SESSION.householdId);
+    SESSION.members = (mems || []).map(m => m.name);
+    localStorage.setItem('dinnerCircleSession', JSON.stringify(SESSION));
+  }
+}
+
+// ══════════════════════════════════════════
+// SCREEN NAVIGATION
+// ══════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// CREATE HOUSEHOLD
+// ══════════════════════════════════════════
+function handleMemberKey(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.trim().replace(/,$/,'');
+    if (val) addCreateMember(val);
+    e.target.value = '';
+    refreshCreateNameSelect();
+  }
+}
+
+function addCreateMember(name) {
+  if (createMembers.includes(name)) return;
+  createMembers.push(name);
+  renderCreateMemberTags();
+  refreshCreateNameSelect();
+}
+
+function removeCreateMember(name) {
+  createMembers = createMembers.filter(m => m !== name);
+  renderCreateMemberTags();
+  refreshCreateNameSelect();
+}
+
+function renderCreateMemberTags() {
+  const wrap = document.getElementById('create-member-tags');
+  wrap.innerHTML = createMembers.map((m,i) =>
+    `<div class="member-tag">${esc(m)}<span class="remove" data-idx="${i}">✕</span></div>`
+  ).join('');
+  wrap.querySelectorAll('.remove').forEach(el => {
+    el.addEventListener('click', () => {
+      createMembers.splice(parseInt(el.dataset.idx), 1);
+      renderCreateMemberTags();
+      refreshCreateNameSelect();
+    });
+  });
+}
+
+function refreshCreateNameSelect() {
+  const sel = document.getElementById('create-your-name');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— select your name —</option>' + createMembers.map(m => `<option ${m===cur?'selected':''}>${esc(m)}</option>`).join('');
+}
+
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length:6}, () => chars[Math.floor(Math.random()*chars.length)]).join('');
+}
+
+
+
+
+async function uploadBannerToStorage(file, householdId) {
+  const ext = file.name.split('.').pop();
+  // Use a timestamp to avoid filename conflicts and cache issues
+  const path = `banners/${householdId}-${Date.now()}.${ext}`;
+  const { data, error } = await sb.storage.from('family-photos').upload(path, file, { upsert: false, cacheControl: '3600' });
+  if (error) {
+    // Common fix: storage bucket needs anon INSERT policy in Supabase
+    showToast('Photo upload failed — see setup note', 'error');
+    console.error('Storage error:', error.message);
+    return null;
+  }
+  const { data: urlData } = sb.storage.from('family-photos').getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
+async function createHousehold() {
+  const name = document.getElementById('create-family-name').value.trim();
+  const yourName = document.getElementById('create-your-name').value;
+  const days = [...document.querySelectorAll('.day-check:checked')].map(c => c.value);
+  if (!name) { showToast('Please enter a family name', 'error'); return; }
+  if (createMembers.length < 1) { showToast('Add at least one family member', 'error'); return; }
+  if (!yourName) { showToast('Select your name', 'error'); return; }
+  if (!days.length) { showToast('Select at least one dinner day', 'error'); return; }
+
+  const btn = document.querySelector('#screen-create .btn-primary');
+  btn.innerHTML = '<span class="spinner"></span> Creating…';
+  btn.disabled = true;
+
+  const mealTypes = [...document.querySelectorAll('.meal-check:checked')].map(c => c.value);
+  const joinCode = generateCode();
+  const { data: hh, error: hhErr } = await sb.from('households')
+    .insert({ name, join_code: joinCode, dinner_days: days, meal_types: mealTypes.length ? mealTypes : ['dinner'] })
+    .select().single();
+  if (hhErr) { showToast('Error: ' + hhErr.message, 'error'); btn.innerHTML = 'Create household →'; btn.disabled=false; return; }
+
+  // Upload banner if provided
+  let bannerUrl = null;
+  if (pendingBannerFile) {
+    bannerUrl = await uploadBannerToStorage(pendingBannerFile, hh.id);
+    if (bannerUrl) await sb.from('households').update({ banner_url: bannerUrl }).eq('id', hh.id);
+  }
+
+  // Insert members
+  await sb.from('household_members').insert(createMembers.map(n => ({ household_id: hh.id, name: n })));
+
+  btn.innerHTML = 'Create household →'; btn.disabled = false;
+
+  SESSION = { householdId: hh.id, memberName: yourName, joinCode, familyName: name, dinnerDays: days, mealTypes: mealTypes.length ? mealTypes : ['dinner'], members: createMembers, bannerUrl };
+  localStorage.setItem('dinnerCircleSession', JSON.stringify(SESSION));
+
+  document.getElementById('reveal-code').textContent = joinCode;
+  pendingBannerFile = null;
+  showScreen('screen-created');
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(SESSION.joinCode).then(() => showToast('Code copied!', 'success'));
+}
+function copySettingsCode() {
+  navigator.clipboard.writeText(SESSION.joinCode).then(() => showToast('Code copied!', 'success'));
+}
+
+function exitHousehold() {
+  if (!confirm('Exit this household? You can rejoin anytime using the join code.')) return;
+  localStorage.removeItem('dinnerCircleSession');
+  SESSION = null;
+  // Reset any stale state
+  selectedMember = null;
+  selectedOptions = {};
+  voteOptions = {};
+  myVotes = {};
+  myAttendance = {};
+  foundHousehold = null;
+  createMembers = [];
+  // Go back to welcome screen
+  showScreen('screen-welcome');
+}
+
+function enterApp() { bootApp(); }
+
+// ══════════════════════════════════════════
+// JOIN HOUSEHOLD
+// ══════════════════════════════════════════
+let foundHousehold = null;
+
+async function joinHousehold() {
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  if (!code) { showToast('Enter a join code', 'error'); return; }
+  const btn = document.getElementById('join-btn');
+
+  if (!foundHousehold) {
+    // Step 1: look up household
+    btn.innerHTML = '<span class="spinner"></span>';
+    btn.disabled = true;
+    const { data, error } = await sb.from('households').select('*').eq('join_code', code).maybeSingle();
+    btn.innerHTML = 'Find household →'; btn.disabled = false;
+    if (error || !data) { showToast('Household not found. Check the code.', 'error'); return; }
+    foundHousehold = data;
+    const { data: mems } = await sb.from('household_members').select('name').eq('household_id', data.id);
+    const sel = document.getElementById('join-member-select');
+    sel.innerHTML = '<option value="">— select your name —</option>' + (mems||[]).map(m=>`<option>${esc(m.name)}</option>`).join('');
+    document.getElementById('join-members-wrap').style.display = 'block';
+    btn.textContent = 'Join household →';
+    return;
+  }
+
+  // Step 2: pick name and join
+  const memberName = document.getElementById('join-member-select').value;
+  if (!memberName) { showToast('Select your name', 'error'); return; }
+  const { data: mems } = await sb.from('household_members').select('name').eq('household_id', foundHousehold.id);
+  SESSION = {
+    householdId: foundHousehold.id,
+    memberName,
+    joinCode: foundHousehold.join_code,
+    familyName: foundHousehold.name,
+    dinnerDays: foundHousehold.dinner_days,
+    mealTypes: foundHousehold.meal_types || ['dinner'],
+    bannerUrl: foundHousehold.banner_url || null,
+    members: (mems||[]).map(m=>m.name)
+  };
+  localStorage.setItem('dinnerCircleSession', JSON.stringify(SESSION));
+  foundHousehold = null;
+  bootApp();
+}
+
+// ══════════════════════════════════════════
+// BOOT APP
+// ══════════════════════════════════════════
+function bootApp() {
+  showScreen('screen-app');
+  document.getElementById('app-family-name').textContent = SESSION.familyName;
+  document.getElementById('week-badge').textContent = getWeekBadge();
+  document.getElementById('settings-join-code').textContent = SESSION.joinCode;
+
+  // Banner
+  if (SESSION.bannerUrl) {
+    document.getElementById('banner-img').src = SESSION.bannerUrl;
+    document.getElementById('banner-img').style.display = 'block';
+    document.getElementById('banner-placeholder').style.display = 'none';
+  }
+
+  renderNameChips();
+  renderHistoryNameChips();
+  populateAddOptionSelect();
+  document.getElementById('log-date').value = new Date().toISOString().slice(0,10);
+  loadSettingsForm();
+  buildDinnerDaysUI();
+  loadHistory();
+}
+
+// ══════════════════════════════════════════
+// DATE HELPERS
+// ══════════════════════════════════════════
+const DAY_ORDER  = ['mon','tue','wed','thu','fri','sat','sun'];
+const DAY_LABELS = { mon:'Monday',tue:'Tuesday',wed:'Wednesday',thu:'Thursday',fri:'Friday',sat:'Saturday',sun:'Sunday' };
+
+// Use local date parts to avoid UTC shift bugs (important for SGT UTC+8)
+function localDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+
+function toDateStr(d) { return localDateStr(d); }
+function toDisplayDate(d) { return d.toLocaleDateString('en-SG',{day:'numeric',month:'long',year:'numeric'}); }
+function toShort(d) { return d.toLocaleDateString('en-SG',{day:'numeric',month:'short'}); }
+
+function getWeekDates() {
+  // Returns Mon–Sun of the CURRENT week using local time
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun,1=Mon...6=Sat
+  const mon = new Date(today);
+  mon.setDate(today.getDate() - (dow === 0 ? 6 : dow - 1));
+  mon.setHours(0,0,0,0);
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(mon);
+    d.setDate(mon.getDate() + i);
+    days.push(d);
+  }
+  return days; // [Mon,Tue,Wed,Thu,Fri,Sat,Sun]
+}
+
+function getNextWeekDates() {
+  // Returns Mon–Sun of NEXT week
+  const thisWeek = getWeekDates();
+  return thisWeek.map(d => {
+    const nd = new Date(d);
+    nd.setDate(d.getDate() + 7);
+    return nd;
+  });
+}
+
+// Week logic: show today onwards within current week.
+// Next week appears only when all current week dinner days have passed.
+
+function getWeekBadge() {
+  const days = getWeekDates();
+  return toShort(days[0]) + ' – ' + toShort(days[6]) + ' ' + days[0].getFullYear();
+}
+
+function getDinnerDaysToShow() {
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const todayStr = localDateStr(today);
+  const dayIndexMap = { mon:0, tue:1, wed:2, thu:3, fri:4, sat:5, sun:6 };
+
+  const sortedDays = [...new Set(SESSION.dinnerDays || [])]
+    .filter(dk => DAY_ORDER.includes(dk))
+    .sort((a,b) => DAY_ORDER.indexOf(a) - DAY_ORDER.indexOf(b));
+
+  const thisWeekDates = getWeekDates();
+  const seenDates = new Set();
+  const result = [];
+
+  // Show configured days from today onwards within the current week
+  sortedDays.forEach(dk => {
+    const date = thisWeekDates[dayIndexMap[dk]];
+    const dateStr = localDateStr(date);
+    if (dateStr >= todayStr && !seenDates.has(dateStr)) {
+      seenDates.add(dateStr);
+      result.push({ dayKey: dk, date, label: DAY_LABELS[dk], weekLabel: '' });
+    }
+  });
+
+  // If all this week's dinner days have passed, show next week so app is never empty
+  if (result.length === 0) {
+    const nextWeekDates = getNextWeekDates();
+    sortedDays.forEach(dk => {
+      const date = nextWeekDates[dayIndexMap[dk]];
+      const dateStr = localDateStr(date);
+      if (!seenDates.has(dateStr)) {
+        seenDates.add(dateStr);
+        result.push({ dayKey: dk + '_next', date, label: DAY_LABELS[dk], weekLabel: 'Next week' });
+      }
+    });
+  }
+
+  // Expand by meal type
+  const mealTypes = (SESSION.mealTypes || ['dinner']);
+  const MEAL_LABELS = { breakfast:'Breakfast', lunch:'Lunch', dinner:'Dinner' };
+  const MEAL_ORDER  = ['breakfast','lunch','dinner'];
+  const sortedMeals = MEAL_ORDER.filter(m => mealTypes.includes(m));
+  if (sortedMeals.length <= 1) return result;
+
+  const expanded = [];
+  result.forEach(dd => {
+    sortedMeals.forEach(meal => {
+      expanded.push({
+        ...dd,
+        dayKey: dd.dayKey + '_' + meal,
+        label: DAY_LABELS[dd.dayKey.replace('_next','')] || dd.label,
+        mealType: meal,
+        mealLabel: MEAL_LABELS[meal],
+        displayLabel: MEAL_LABELS[meal] + ' · ' + (DAY_LABELS[dd.dayKey.replace('_next','')] || dd.label)
+      });
+    });
+  });
+  return expanded;
+}
+
+// ══════════════════════════════════════════
+// BUILD DYNAMIC DINNER DAY UI
+// ══════════════════════════════════════════
+function buildDinnerDaysUI() {
+  const dinnerDays = getDinnerDaysToShow();
+  const voteContainer = document.getElementById('dinner-days-container');
+  const parentContainer = document.getElementById('parent-days-container');
+
+  let lastWeekLabel = '';
+
+  // Vote tab
+  voteContainer.innerHTML = dinnerDays.map((dd, i) => {
+    let weekHeader = '';
+    if (dd.weekLabel && dd.weekLabel !== lastWeekLabel) {
+      weekHeader = `<div style="margin:${i>0?'8px':'0'} 0 16px;padding:8px 14px;background:var(--border);border-radius:8px;font-size:14px;font-weight:500;color:var(--muted);">📅 ${dd.weekLabel}</div>`;
+      lastWeekLabel = dd.weekLabel;
+    }
+    return `
+    ${i > 0 && !weekHeader ? '<div class="divider"></div>' : ''}
+    ${weekHeader}
+    <div class="section-title">${dd.displayLabel || (dd.label + ' dinner')}</div>
+    <div class="day-label-sub">${toDisplayDate(dd.date)}</div>
+    <div class="attend-block">
+      <div class="attend-q">Are you eating ${dd.mealLabel ? dd.mealLabel.toLowerCase() : 'dinner'} on ${dd.label}?</div>
+      <div class="attend-btns">
+        <button class="attend-btn yes" id="attend-${dd.dayKey}-yes" onclick="setAttendance('${dd.dayKey}','yes')">✓ Yes, I'm in</button>
+        <button class="attend-btn no"  id="attend-${dd.dayKey}-no"  onclick="setAttendance('${dd.dayKey}','no')">✗ Not eating</button>
+      </div>
+    </div>
+    <div id="${dd.dayKey}-vote-section" style="display:none">
+      <div class="row-between" style="margin-bottom:14px;">
+        <span style="font-size:15px;color:var(--muted);">Vote for what to eat</span>
+        <button class="btn btn-ghost" style="padding:7px 14px;font-size:14px;" onclick="openAddOption('${dd.dayKey}')">+ Suggest a dish</button>
+      </div>
+      <div id="voted-banner-${dd.dayKey}" class="voted-banner" style="display:none">✓ Vote counted! Tap another dish to change it.</div>
+      <div id="options-grid-${dd.dayKey}" class="options-grid"></div>
+      <button class="btn btn-primary" id="submit-vote-btn-${dd.dayKey}" disabled onclick="submitVote('${dd.dayKey}')" style="margin-bottom:8px;">Vote for ${dd.displayLabel || dd.label}</button>
+    </div>`;
+  }).join('');
+
+  lastWeekLabel = '';
+
+  // Parent tab
+  parentContainer.innerHTML = dinnerDays.map((dd, i) => {
+    let weekHeader = '';
+    if (dd.weekLabel && dd.weekLabel !== lastWeekLabel) {
+      weekHeader = `<div style="margin:${i>0?'8px':'0'} 0 16px;padding:8px 14px;background:var(--border);border-radius:8px;font-size:14px;font-weight:500;color:var(--muted);">📅 ${dd.weekLabel}</div>`;
+      lastWeekLabel = dd.weekLabel;
+    }
+    return `
+    ${i > 0 && !weekHeader ? '<div class="divider"></div>' : ''}
+    ${weekHeader}
+    <div class="section-title" style="font-size:19px;margin-bottom:6px;">${dd.displayLabel || dd.label} <span style="font-weight:400;font-size:15px;color:var(--muted);">${toShort(dd.date)}</span></div>
+    <div id="winner-${dd.dayKey}"></div>
+    <div style="font-size:15px;font-weight:500;color:var(--muted);margin-bottom:10px;">Who's eating</div>
+    <div id="attend-grid-${dd.dayKey}" class="attend-grid"></div>
+    <div style="font-size:15px;font-weight:500;color:var(--muted);margin-bottom:10px;">Vote tally</div>
+    <div id="tally-${dd.dayKey}"></div>`;
+  }).join('');
+
+  // Load data for each day
+  dinnerDays.forEach(dd => {
+    loadVoteOptions(dd.dayKey, dd.date);
+    selectedOptions[dd.dayKey] = null;
+    myVotes[dd.dayKey] = null;
+    myAttendance[dd.dayKey] = null;
+  });
+}
+
+// ══════════════════════════════════════════
+// NAME CHIPS
+// ══════════════════════════════════════════
+function renderNameChips() {
+  document.getElementById('name-chips').innerHTML = (SESSION.members||[]).map(m =>
+    `<button class="chip" onclick="selectMember('${esc(m)}',this)">${esc(m)}</button>`
+  ).join('');
+  // Auto-select saved member
+  if (SESSION.memberName) {
+    const chips = document.querySelectorAll('#name-chips .chip');
+    chips.forEach(c => { if (c.textContent === SESSION.memberName) c.classList.add('active'); });
+    selectedMember = SESSION.memberName;
+    getDinnerDaysToShow().forEach(dd => {
+      checkExistingAttendance(dd.dayKey, dd.date);
+      checkExistingVote(dd.dayKey, dd.date);
+    });
+  }
+}
+
+// ── DISH ICONS ────────────────────────────────────────────
+const DISH_ICONS = [
+  ['🍚', ['rice','nasi','claypot','fried rice','biryani','congee','porridge']],
+  ['🍜', ['mee','noodle','pasta','spaghetti','ramen','laksa','beehoon','kway','pho','udon','soba']],
+  ['🍗', ['chicken','ayam','hainanese']],
+  ['🐟', ['fish','salmon','cod','seabass','siakap','soon hock']],
+  ['🦐', ['prawn','shrimp','udang']],
+  ['🦀', ['crab']],
+  ['🥩', ['pork','babi','char siew','beef','steak','rendang']],
+  ['🍲', ['soup','stew','bak kut','tom yum','broth','hotpot']],
+  ['🍛', ['curry','kari']],
+  ['🍖', ['bbq','barbecue','satay','grill']],
+  ['🥐', ['bread','toast','sandwich','prata','roti']],
+  ['🥟', ['dim sum','dumpling','gyoza','bao','pau','wonton']],
+  ['🍕', ['pizza']],
+  ['🍱', ['sushi','japanese','bento']],
+];
+function getDishIcon(name) {
+  const l = name.toLowerCase();
+  for (const [icon, keys] of DISH_ICONS) {
+    if (keys.some(k => l.includes(k))) return icon;
+  }
+  return '🍽️';
+}
+
+// ── HISTORY MEMBER CHIPS ──────────────────────────────────
+function renderHistoryNameChips() {
+  const wrap = document.getElementById('history-name-chips');
+  if (!wrap) return;
+  wrap.innerHTML = (SESSION.members||[]).map(m =>
+    `<button class="chip${m===historyMember?' active':''}" onclick="selectHistoryMember('${esc(m)}',this)">${esc(m)}</button>`
+  ).join('');
+}
+
+async function selectHistoryMember(name, el) {
+  document.querySelectorAll('#history-name-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  historyMember = name;
+  await renderFullHistory(historyData, 'history-list');
+}
+
+function populateAddOptionSelect() {
+  document.getElementById('new-dish-by').innerHTML = '<option value="">— select —</option>' +
+    (SESSION.members||[]).map(m => `<option>${esc(m)}</option>`).join('');
+}
+
+async function selectMember(name, el) {
+  document.querySelectorAll('#name-chips .chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedMember = name;
+  SESSION.memberName = name;
+  localStorage.setItem('dinnerCircleSession', JSON.stringify(SESSION));
+  getDinnerDaysToShow().forEach(dd => {
+    checkExistingAttendance(dd.dayKey, dd.date);
+    checkExistingVote(dd.dayKey, dd.date);
+  });
+}
+
+// ══════════════════════════════════════════
+// ATTENDANCE
+// ══════════════════════════════════════════
+async function checkExistingAttendance(dayKey, date) {
+  if (!selectedMember) return;
+  const dateStr = toDateStr(date);
+  const { data } = await sb.from('dinner_attendance')
+    .select('response')
+    .eq('household_id', SESSION.householdId)
+    .eq('dinner_date', dateStr)
+    .eq('member_name', selectedMember)
+    .maybeSingle();
+  const resp = data ? data.response : null;
+  myAttendance[dayKey] = resp;
+  renderAttendanceBtns(dayKey, resp);
+  const section = document.getElementById(dayKey + '-vote-section');
+  if (section) section.style.display = resp === 'yes' ? 'block' : 'none';
+}
+
+function renderAttendanceBtns(dayKey, resp) {
+  const y = document.getElementById('attend-' + dayKey + '-yes');
+  const n = document.getElementById('attend-' + dayKey + '-no');
+  if (y) y.classList.toggle('active', resp === 'yes');
+  if (n) n.classList.toggle('active', resp === 'no');
+}
+
+async function setAttendance(dayKey, resp) {
+  if (!selectedMember) { showToast('Pick your name first', 'error'); return; }
+  const dd = getDinnerDaysToShow().find(d => d.dayKey === dayKey);
+  if (!dd) return;
+  const dateStr = toDateStr(dd.date);
+  const { error } = await sb.from('dinner_attendance')
+    .upsert({ household_id: SESSION.householdId, dinner_date: dateStr, member_name: selectedMember, response: resp },
+             { onConflict: 'household_id,dinner_date,member_name' });
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  myAttendance[dayKey] = resp;
+  renderAttendanceBtns(dayKey, resp);
+  const section = document.getElementById(dayKey + '-vote-section');
+  if (section) section.style.display = resp === 'yes' ? 'block' : 'none';
+  showToast(resp === 'yes' ? 'Marked as eating 🍽️' : 'Marked as not eating', 'success');
+  if (document.getElementById('page-parent').classList.contains('active')) renderParentView();
+}
+
+// ══════════════════════════════════════════
+// VOTE OPTIONS
+// ══════════════════════════════════════════
+async function loadVoteOptions(dayKey, date) {
+  const dateStr = toDateStr(date);
+  const { data, error } = await sb.from('dinner_options')
+    .select('*, dinner_votes(voter_name)')
+    .eq('household_id', SESSION.householdId)
+    .eq('dinner_date', dateStr)
+    .order('created_at', { ascending: true });
+  if (error) return;
+  voteOptions[dayKey] = data || [];
+  renderOptions(dayKey);
+}
+
+function renderOptions(dayKey) {
+  const grid = document.getElementById('options-grid-' + dayKey);
+  if (!grid) return;
+  const opts = voteOptions[dayKey] || [];
+  if (!opts.length) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:20px 0"><div class="icon">🍽️</div><p>No dishes yet. Suggest one!</p></div>`;
+    return;
+  }
+  grid.innerHTML = opts.map(o => {
+    const count = o.dinner_votes ? o.dinner_votes.length : 0;
+    const sel = selectedOptions[dayKey] === o.id ? 'selected' : '';
+    return `
+      <div class="option-card ${sel}" onclick="selectOption('${dayKey}','${o.id}',this)">
+        <div class="dish-name">${esc(o.dish_name)}</div>
+        <div class="dish-meta">${o.suggested_by ? 'by ' + esc(o.suggested_by) : ''}${o.notes ? ' · ' + esc(o.notes) : ''}</div>
+        <div class="vote-count">${count} vote${count !== 1 ? 's' : ''}</div>
+        <button class="delete-btn" onclick="deleteOption(event,'${o.id}','${dayKey}')" title="Delete">🗑</button>
+      </div>`;
+  }).join('');
+}
+
+async function checkExistingVote(dayKey, date) {
+  if (!selectedMember) return;
+  const dateStr = toDateStr(date);
+  const { data } = await sb.from('dinner_votes')
+    .select('option_id')
+    .eq('household_id', SESSION.householdId)
+    .eq('dinner_date', dateStr)
+    .eq('voter_name', selectedMember)
+    .maybeSingle();
+  if (data) {
+    myVotes[dayKey] = data.option_id;
+    selectedOptions[dayKey] = data.option_id;
+    const banner = document.getElementById('voted-banner-' + dayKey);
+    if (banner) banner.style.display = 'block';
+    renderOptions(dayKey);
+  } else {
+    myVotes[dayKey] = null;
+    const banner = document.getElementById('voted-banner-' + dayKey);
+    if (banner) banner.style.display = 'none';
+  }
+  updateSubmitBtn(dayKey);
+}
+
+function selectOption(dayKey, id, el) {
+  selectedOptions[dayKey] = id;
+  document.querySelectorAll('#options-grid-' + dayKey + ' .option-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  updateSubmitBtn(dayKey);
+}
+
+function updateSubmitBtn(dayKey) {
+  const btn = document.getElementById('submit-vote-btn-' + dayKey);
+  if (btn) btn.disabled = !(selectedOptions[dayKey] && selectedMember);
+}
+
+async function submitVote(dayKey) {
+  if (!selectedOptions[dayKey] || !selectedMember) return;
+  const dd = getDinnerDaysToShow().find(d => d.dayKey === dayKey);
+  if (!dd) return;
+  const btn = document.getElementById('submit-vote-btn-' + dayKey);
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+  const dateStr = toDateStr(dd.date);
+  const { error } = await sb.from('dinner_votes')
+    .upsert({ household_id: SESSION.householdId, dinner_date: dateStr, voter_name: selectedMember, option_id: selectedOptions[dayKey] },
+             { onConflict: 'household_id,dinner_date,voter_name' });
+  btn.innerHTML = 'Vote for ' + dd.label;
+  if (error) { showToast('Error: ' + error.message, 'error'); btn.disabled = false; return; }
+  showToast(dd.label + ' vote saved! 🎉', 'success');
+  myVotes[dayKey] = selectedOptions[dayKey];
+  const banner = document.getElementById('voted-banner-' + dayKey);
+  if (banner) banner.style.display = 'block';
+  await loadVoteOptions(dayKey, dd.date);
+  updateSubmitBtn(dayKey);
+}
+
+async function deleteOption(e, id, dayKey) {
+  e.stopPropagation();
+  if (!confirm('Remove this dish suggestion?')) return;
+  const { error } = await sb.from('dinner_options').delete().eq('id', id);
+  if (error) { showToast('Could not delete', 'error'); return; }
+  if (selectedOptions[dayKey] === id) { selectedOptions[dayKey] = null; updateSubmitBtn(dayKey); }
+  showToast('Dish removed', 'success');
+  const dd = getDinnerDaysToShow().find(d => d.dayKey === dayKey);
+  if (dd) await loadVoteOptions(dayKey, dd.date);
+}
+
+// ══════════════════════════════════════════
+// ADD OPTION MODAL
+// ══════════════════════════════════════════
+async function openAddOption(dayKey) {
+  addingForDay = dayKey;
+  document.getElementById('new-dish-name').value = '';
+  document.getElementById('new-dish-notes').value = '';
+  document.getElementById('dish-suggestions').style.display = 'none';
+  document.getElementById('ds-chips').innerHTML = '';
+  openModal('modal-add-option');
+  await loadDishSuggestions(dayKey);
+}
+
+async function loadDishSuggestions(dayKey) {
+  if (!sb || !SESSION?.householdId) return;
+  const dd = getDinnerDaysToShow().find(d => d.dayKey === dayKey);
+  if (!dd) return;
+  const dateStr = toDateStr(dd.date);
+
+  // Already-suggested dishes for this slot (deconflict)
+  const { data: existing } = await sb.from('dinner_options')
+    .select('dish_name')
+    .eq('household_id', SESSION.householdId)
+    .eq('dinner_date', dateStr);
+  const alreadySuggested = new Set((existing||[]).map(o => o.dish_name.toLowerCase()));
+
+  // Pull past dishes from history + other slots this week
+  const weekDates = [...new Set(getDinnerDaysToShow().map(d => toDateStr(d.date)))];
+  const [{ data: historyDishes }, { data: weekDishes }] = await Promise.all([
+    sb.from('dinner_history').select('dish_name').eq('household_id', SESSION.householdId)
+      .order('created_at', { ascending: false }).limit(40),
+    sb.from('dinner_options').select('dish_name').eq('household_id', SESSION.householdId)
+      .in('dinner_date', weekDates)
+  ]);
+
+  // Count frequency from history to surface recurring dishes
+  const freq = {};
+  (historyDishes||[]).forEach(r => {
+    const name = r.dish_name.trim();
+    freq[name] = (freq[name] || 0) + 1;
+  });
+
+  const candidates = [];
+  const seen = new Set();
+
+  // Other dishes suggested this week on different days — most relevant
+  (weekDishes||[]).map(r => r.dish_name.trim()).forEach(name => {
+    const key = name.toLowerCase();
+    if (!seen.has(key) && !alreadySuggested.has(key)) {
+      seen.add(key);
+      candidates.push({ name, score: 100 });
+    }
+  });
+
+  // Historical dishes by frequency
+  Object.entries(freq).sort((a,b) => b[1]-a[1]).forEach(([name, count]) => {
+    const key = name.toLowerCase();
+    if (!seen.has(key) && !alreadySuggested.has(key)) {
+      seen.add(key);
+      candidates.push({ name, score: count });
+    }
+  });
+
+  const top = candidates.slice(0, 8);
+  if (!top.length) return;
+
+  const chips = document.getElementById('ds-chips');
+  chips.innerHTML = top.map(s =>
+    `<button class="ds-chip" onclick="pickDishSuggestion('${esc(s.name)}')">${esc(s.name)}</button>`
+  ).join('');
+  document.getElementById('dish-suggestions').style.display = 'block';
+}
+
+function pickDishSuggestion(name) {
+  document.getElementById('new-dish-name').value = name;
+  document.getElementById('dish-suggestions').style.display = 'none';
+}
+
+async function submitOption() {
+  const name  = document.getElementById('new-dish-name').value.trim();
+  const by    = document.getElementById('new-dish-by').value;
+  const notes = document.getElementById('new-dish-notes').value.trim();
+  if (!name) { showToast('Please enter a dish name', 'error'); return; }
+  const dd = getDinnerDaysToShow().find(d => d.dayKey === addingForDay);
+  if (!dd) return;
+  const dateStr = toDateStr(dd.date);
+  const { error } = await sb.from('dinner_options')
+    .insert({ household_id: SESSION.householdId, dinner_date: dateStr, dish_name: name, suggested_by: by || null, notes: notes || null });
+  if (error) { showToast('Error: ' + error.message, 'error'); return; }
+  showToast('Dish added!', 'success');
+  closeModal('modal-add-option');
+  await loadVoteOptions(addingForDay, dd.date);
+}
+
+// ══════════════════════════════════════════
+// HISTORY
+// ══════════════════════════════════════════
+async function loadHistory() {
+  const { data, error } = await sb.from('dinner_history')
+    .select('*')
+    .eq('household_id', SESSION.householdId)
+    .order('date', { ascending: false })
+    .limit(60);
+  if (error) return;
+  historyData = data || [];
+  await renderFullHistory(historyData, 'history-list');
+  renderRecentHistory(historyData.slice(0, 4), 'recent-history');
+}
+
+// Full history with ratings, grouped by day (history tab)
+async function renderFullHistory(items, targetId) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  if (!items.length) { el.innerHTML = `<div class="empty"><div class="icon">📖</div><p>No meals logged yet.</p></div>`; return; }
+
+  // Fetch ratings for all meals
+  const ids = items.map(d => d.id);
+  const { data: allRatings } = await sb.from('meal_ratings')
+    .select('*').eq('household_id', SESSION.householdId).in('meal_id', ids);
+  const ratingsMap = {};
+  (allRatings||[]).forEach(r => { if (!ratingsMap[r.meal_id]) ratingsMap[r.meal_id]=[]; ratingsMap[r.meal_id].push(r); });
+
+  // Group by date
+  const byDate = {};
+  items.forEach(d => { if (!byDate[d.date]) byDate[d.date]=[]; byDate[d.date].push(d); });
+
+  el.innerHTML = Object.entries(byDate).map(([date, meals]) => {
+    const dateLabel = new Date(date+'T00:00:00').toLocaleDateString('en-SG',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+    const cards = meals.map(d => {
+      const icon = d.photo_url
+        ? `<img class="meal-icon-img" src="${esc(d.photo_url)}" alt="${esc(d.dish_name)}"/>`
+        : `<div class="meal-icon">${getDishIcon(d.dish_name)}</div>`;
+      const ratings = ratingsMap[d.id] || [];
+      const myRating = ratings.find(r => r.member_name === historyMember);
+      return `<div class="meal-card" id="meal-card-${d.id}">
+        <div class="meal-card-top">${icon}
+          <div class="meal-info">
+            <div class="meal-name">${esc(d.dish_name)}</div>
+            ${d.notes ? `<div class="meal-note-text">${esc(d.notes)}</div>` : ''}
+          </div>
+        </div>
+        <div class="meal-card-actions">
+          <button class="edit-btn" onclick="editMeal('${d.id}','${esc(d.dish_name)}','${d.date}','${esc(d.notes||'')}')">✏️ Edit</button>
+          <button class="del-btn" onclick="deleteMeal('${d.id}')">🗑 Delete</button>
+        </div>
+        <div class="ratings-section">
+          ${buildRatingFormHtml(d.id, myRating)}
+          ${buildRatingsSummaryHtml(ratings)}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="history-day-group">
+      <div class="history-day-header">${dateLabel}</div>
+      ${cards}
+    </div>`;
+  }).join('');
+}
+
+// Simple recent history for parent view (no ratings, compact)
+function renderRecentHistory(items, targetId) {
+  const el = document.getElementById(targetId);
+  if (!el) return;
+  if (!items.length) { el.innerHTML = `<div class="empty"><div class="icon">📖</div><p>No meals logged yet.</p></div>`; return; }
+  el.innerHTML = items.map(d => {
+    const dateStr = new Date(d.date+'T00:00:00').toLocaleDateString('en-SG',{weekday:'short',day:'numeric',month:'short'});
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:28px;width:40px;text-align:center;">${getDishIcon(d.dish_name)}</div>
+      <div><div style="font-weight:600;font-size:15px;">${esc(d.dish_name)}</div><div style="font-size:13px;color:var(--muted);">${dateStr}</div></div>
+    </div>`;
+  }).join('');
+}
+
+// ── RATING FORM ────────────────────────────────────────────
+const TASTE_PROFILES = [
+  {key:'saltiness', label:'Salt',   options:['🧂 Low','Just right','🧂 High']},
+  {key:'sweetness', label:'Sweet',  options:['Low','Just right','High']},
+  {key:'richness',  label:'Rich',   options:['Light','Medium','Rich']},
+  {key:'spiciness', label:'Spicy',  options:['Mild','Medium','🌶 Hot']},
+  {key:'freshness', label:'Fresh',  options:['Lacking','OK','Very fresh']},
+];
+const TASTE_OPTS_MAP = Object.fromEntries(TASTE_PROFILES.map(p => [p.key, p.options]));
+
+function buildRatingFormHtml(mealId, myRating) {
+  const overall = myRating?.overall || null;
+  const taste   = myRating?.taste_profiles || {};
+  const memberLabel = historyMember || '— pick your name above';
+  return `
+    <div class="ratings-label">Rate this meal (as ${esc(memberLabel)})</div>
+    <div class="rating-row">
+      <div class="rating-name">Overall</div>
+      <div class="rating-btns">
+        <button class="r-btn${overall==='up'?' active-up':''}" onclick="setRating('${mealId}','up')">👍</button>
+        <button class="r-btn${overall==='neu'?' active-neu':''}" onclick="setRating('${mealId}','neu')">😐</button>
+        <button class="r-btn${overall==='down'?' active-down':''}" onclick="setRating('${mealId}','down')">👎</button>
+      </div>
+    </div>
+    <div class="taste-section">
+      <div class="taste-label">Taste profile (optional)</div>
+      <div class="taste-grid">
+        ${TASTE_PROFILES.map(p => `
+          <div class="taste-row">
+            <div class="taste-name">${p.label}</div>
+            <div class="taste-btns">
+              ${p.options.map((o,i) => `<button class="t-btn${taste[p.key]===i?' t-active':''}" onclick="setTaste('${mealId}','${p.key}',${i})">${o}</button>`).join('')}
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function buildRatingsSummaryHtml(ratings) {
+  if (!ratings.length) return '';
+  const OVERALL_ICONS = {up:'👍',neu:'😐',down:'👎'};
+  const rows = ratings.map(r => {
+    const icon = OVERALL_ICONS[r.overall] || '';
+    const tp = r.taste_profiles || {};
+    const pills = TASTE_PROFILES
+      .filter(p => tp[p.key] !== undefined && tp[p.key] !== null)
+      .map(p => `<span class="taste-pill">${p.label}: ${TASTE_OPTS_MAP[p.key]?.[tp[p.key]] || ''}</span>`)
+      .join('');
+    return `<div class="member-rating-row">
+      <div class="mrname">${esc(r.member_name)}</div>
+      <span class="overall-badge">${icon}</span>
+      ${pills ? `<div class="taste-pills">${pills}</div>` : ''}
+    </div>`;
+  }).join('');
+  return `<div class="ratings-summary">
+    <div class="ratings-summary-label">Family ratings</div>
+    ${rows}
+  </div>`;
+}
+
+async function setRating(mealId, overall) {
+  if (!historyMember) { showToast('Pick your name above first', 'error'); return; }
+  const { data: existing } = await sb.from('meal_ratings').select('taste_profiles')
+    .eq('meal_id', mealId).eq('member_name', historyMember)
+    .eq('household_id', SESSION.householdId).maybeSingle();
+  const tp = existing?.taste_profiles || {};
+  const { error } = await sb.from('meal_ratings')
+    .upsert({ meal_id:mealId, member_name:historyMember, household_id:SESSION.householdId, overall, taste_profiles:tp },
+             { onConflict:'meal_id,member_name' });
+  if (error) { showToast('Error saving rating', 'error'); return; }
+  showToast('Rating saved!', 'success');
+  await loadHistory();
+}
+
+async function setTaste(mealId, profile, val) {
+  if (!historyMember) { showToast('Pick your name above first', 'error'); return; }
+  const { data: existing } = await sb.from('meal_ratings').select('overall,taste_profiles')
+    .eq('meal_id', mealId).eq('member_name', historyMember)
+    .eq('household_id', SESSION.householdId).maybeSingle();
+  const tp = { ...(existing?.taste_profiles || {}), [profile]: val };
+  const overall = existing?.overall || null;
+  const { error } = await sb.from('meal_ratings')
+    .upsert({ meal_id:mealId, member_name:historyMember, household_id:SESSION.householdId, overall, taste_profiles:tp },
+             { onConflict:'meal_id,member_name' });
+  if (error) { showToast('Error saving taste profile', 'error'); return; }
+  showToast('Taste saved!', 'success');
+  await loadHistory();
+}
+
+// ── EDIT / DELETE ──────────────────────────────────────────
+function editMeal(id, dishName, date, notes) {
+  document.getElementById('log-edit-id').value = id;
+  document.getElementById('log-modal-title').textContent = 'Edit meal';
+  document.getElementById('log-save-btn').textContent = 'Update meal';
+  document.getElementById('log-dish-name').value = dishName;
+  document.getElementById('log-date').value = date;
+  document.getElementById('log-notes').value = notes;
+  document.getElementById('log-photo-preview').style.display = 'none';
+  document.getElementById('log-ds-wrap').style.display = 'none';
+  uploadedLogPhoto = null;
+  openModal('modal-log-dinner');
+}
+
+async function deleteMeal(id) {
+  if (!confirm('Delete this meal from history?')) return;
+  await sb.from('meal_ratings').delete().eq('meal_id', id);
+  const { error } = await sb.from('dinner_history').delete().eq('id', id);
+  if (error) { showToast('Error deleting meal', 'error'); return; }
+  showToast('Meal deleted', 'success');
+  await loadHistory();
+}
+
+async function openLogDinner() {
+  document.getElementById('log-edit-id').value = '';
+  document.getElementById('log-modal-title').textContent = 'Log a meal';
+  document.getElementById('log-save-btn').textContent = 'Save meal';
+  document.getElementById('log-dish-name').value = '';
+  document.getElementById('log-notes').value = '';
+  document.getElementById('log-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('log-photo-preview').style.display = 'none';
+  document.getElementById('log-ds-wrap').style.display = 'none';
+  document.getElementById('log-ds-chips').innerHTML = '';
+  uploadedLogPhoto = null;
+  openModal('modal-log-dinner');
+  // Load suggestions from history
+  const { data: hist } = await sb.from('dinner_history').select('dish_name')
+    .eq('household_id', SESSION.householdId).order('date',{ascending:false}).limit(40);
+  const seen = new Set(); const top = [];
+  (hist||[]).forEach(r => { const k=r.dish_name.trim(); if(!seen.has(k.toLowerCase())){seen.add(k.toLowerCase());top.push(k);} });
+  if (top.length) {
+    document.getElementById('log-ds-chips').innerHTML = top.slice(0,8).map(n =>
+      `<button class="ds-chip" style="padding:5px 12px;background:var(--cream);border:1.5px solid var(--border);border-radius:20px;font-size:13px;cursor:pointer;font-family:var(--ff-body);" onclick="document.getElementById('log-dish-name').value='${esc(n)}';document.getElementById('log-ds-wrap').style.display='none'">${esc(n)}</button>`
+    ).join('');
+    document.getElementById('log-ds-wrap').style.display = 'block';
+  }
+}
+
+function previewLogPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  uploadedLogPhoto = input.files[0];
+  const reader = new FileReader();
+  reader.onload = e => { const p = document.getElementById('log-photo-preview'); p.src = e.target.result; p.style.display = 'block'; };
+  reader.readAsDataURL(uploadedLogPhoto);
+}
+
+async function submitDinnerLog() {
+  const dish   = document.getElementById('log-dish-name').value.trim();
+  const date   = document.getElementById('log-date').value;
+  const notes  = document.getElementById('log-notes').value.trim();
+  const editId = document.getElementById('log-edit-id').value;
+  if (!dish || !date) { showToast('Dish name and date are required', 'error'); return; }
+
+  let photoUrl = null;
+  if (uploadedLogPhoto) {
+    const ext  = uploadedLogPhoto.name.split('.').pop();
+    const path = `dinners/${SESSION.householdId}/${Date.now()}.${ext}`;
+    const { error: upErr } = await sb.storage.from('dinner-photos').upload(path, uploadedLogPhoto, { upsert: false });
+    if (upErr) { showToast('Photo upload failed', 'error'); return; }
+    const { data: urlData } = sb.storage.from('dinner-photos').getPublicUrl(path);
+    photoUrl = urlData.publicUrl;
+  }
+
+  if (editId) {
+    const updateData = { dish_name: dish, date, notes: notes||null };
+    if (photoUrl) updateData.photo_url = photoUrl;
+    const { error } = await sb.from('dinner_history').update(updateData).eq('id', editId);
+    if (error) { showToast('Error updating', 'error'); return; }
+    showToast('Meal updated! ✏️', 'success');
+  } else {
+    const { error } = await sb.from('dinner_history')
+      .insert({ household_id: SESSION.householdId, dish_name: dish, date, notes: notes||null, photo_url: photoUrl });
+    if (error) { showToast('Error: ' + error.message, 'error'); return; }
+    showToast('Meal logged! 🍽️', 'success');
+  }
+  closeModal('modal-log-dinner');
+  await loadHistory();
+}
+
+// ══════════════════════════════════════════
+// PARENT VIEW
+// ══════════════════════════════════════════
+let currentParentSub = 'summary';
+
+function switchParentSub(sub) {
+  currentParentSub = sub;
+  document.getElementById('parent-view-summary').style.display = sub === 'summary' ? 'block' : 'none';
+  document.getElementById('parent-view-detailed').style.display = sub === 'detailed' ? 'block' : 'none';
+  const sumBtn = document.getElementById('parent-sub-summary');
+  const detBtn = document.getElementById('parent-sub-detailed');
+  sumBtn.style.background = sub === 'summary' ? 'var(--ink)' : 'var(--card)';
+  sumBtn.style.color = sub === 'summary' ? 'var(--cream)' : 'var(--muted)';
+  detBtn.style.background = sub === 'detailed' ? 'var(--ink)' : 'var(--card)';
+  detBtn.style.color = sub === 'detailed' ? 'var(--cream)' : 'var(--muted)';
+  renderParentView();
+}
+
+async function renderParentView() {
+  const dinnerDays = getDinnerDaysToShow();
+  if (currentParentSub === 'summary') {
+    await renderParentSummary(dinnerDays);
+  } else {
+    await Promise.all(dinnerDays.map(dd => renderParentDayBlock(dd)));
+    renderRecentHistory(historyData.slice(0,4), 'recent-history');
+  }
+}
+
+async function renderParentSummary(dinnerDays) {
+  const grid = document.getElementById('parent-summary-grid');
+  if (!grid) return;
+  grid.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">Loading…</div>';
+
+  if (!dinnerDays.length) {
+    grid.innerHTML = '<div class="empty"><div class="icon">📅</div><p>No meal days this week.</p></div>';
+    return;
+  }
+
+  const dateStrs = [...new Set(dinnerDays.map(dd => toDateStr(dd.date)))];
+
+  const [{ data: allAttend }, { data: allVotes }] = await Promise.all([
+    sb.from('dinner_attendance')
+      .select('member_name,response,dinner_date')
+      .eq('household_id', SESSION.householdId)
+      .in('dinner_date', dateStrs),
+    sb.from('dinner_votes')
+      .select('voter_name,dinner_date,dinner_options(dish_name)')
+      .eq('household_id', SESSION.householdId)
+      .in('dinner_date', dateStrs)
+  ]);
+
+  // attendMap[date][member] = response
+  const attendMap = {};
+  (allAttend||[]).forEach(r => {
+    if (!attendMap[r.dinner_date]) attendMap[r.dinner_date] = {};
+    attendMap[r.dinner_date][r.member_name] = r.response;
+  });
+  // voteMap[date][member] = dish
+  const voteMap = {};
+  (allVotes||[]).forEach(r => {
+    if (!voteMap[r.dinner_date]) voteMap[r.dinner_date] = {};
+    voteMap[r.dinner_date][r.voter_name] = r.dinner_options?.dish_name || '';
+  });
+
+  const members = SESSION.members || [];
+  const mealTypes = SESSION.mealTypes || ['dinner'];
+  const MEAL_LABELS = { breakfast:'🌅 Bfast', lunch:'☀️ Lunch', dinner:'🌙 Dinner' };
+  const multiMeal = mealTypes.length > 1;
+
+  // Group dinner days by unique date (day), then by meal type within each day
+  // Structure: [{date, dateStr, dayLabel, meals:[{dd,mealLabel}]}]
+  const dayGroups = [];
+  const seenDayDates = {};
+  dinnerDays.forEach(dd => {
+    const dateStr = toDateStr(dd.date);
+    if (!seenDayDates[dateStr]) {
+      seenDayDates[dateStr] = { date: dd.date, dateStr, dayLabel: dd.label, meals: [] };
+      dayGroups.push(seenDayDates[dateStr]);
+    }
+    seenDayDates[dateStr].meals.push({ dd, mealLabel: dd.mealLabel || 'Dinner' });
+  });
+
+  // Build header rows
+  // Row 1: day group headers spanning meal columns
+  // Row 2: meal sub-headers (only if multi-meal)
+  // rowspan only needed when multiMeal (two header rows)
+  let headerRow1 = multiMeal ? '<th class="member-head" rowspan="2">Member</th>' : '<th class="member-head">Member</th>';
+  let headerRow2 = '';
+  dayGroups.forEach(dg => {
+    headerRow1 += `<th class="day-group" colspan="${dg.meals.length}">${dg.dayLabel.slice(0,3)} ${toShort(dg.date)}</th>`;
+    dg.meals.forEach(({ mealLabel }) => {
+      headerRow2 += `<th>${multiMeal ? MEAL_LABELS[mealLabel.toLowerCase()] || mealLabel : ''}</th>`;
+    });
+  });
+
+  // All columns flat
+  const allCols = dayGroups.flatMap(dg => dg.meals.map(m => m.dd));
+
+  // Member rows
+  const memberRows = members.map(m => {
+    const cells = allCols.map(dd => {
+      const dateStr = toDateStr(dd.date);
+      const resp = (attendMap[dateStr]||{})[m] || null;
+      const dish = (voteMap[dateStr]||{})[m] || '';
+      if (resp === 'yes') return `<td><span class="s-yes">✓</span>${dish ? `<span class="s-dish">${esc(dish)}</span>` : ''}</td>`;
+      if (resp === 'no')  return `<td><span class="s-no">✗</span></td>`;
+      return `<td><span class="s-pending">—</span></td>`;
+    }).join('');
+    return `<tr><td class="member-col">${esc(m)}</td>${cells}</tr>`;
+  }).join('');
+
+  // Tally row — count "yes" per column
+  const tallyCells = allCols.map(dd => {
+    const dateStr = toDateStr(dd.date);
+    const dayAttend = attendMap[dateStr] || {};
+    const count = members.filter(m => dayAttend[m] === 'yes').length;
+    return `<td><strong>${count}</strong><span style="font-size:11px;color:var(--muted);"> pax</span></td>`;
+  }).join('');
+
+  const theadRows = multiMeal
+    ? `<tr>${headerRow1}</tr><tr>${headerRow2}</tr>`
+    : `<tr>${headerRow1}</tr>`;
+
+  grid.innerHTML = `
+    <div class="summary-wrap">
+      <table class="summary-table">
+        <thead>${theadRows}</thead>
+        <tbody>
+          ${memberRows}
+          <tr class="tally-row-summary">
+            <td class="member-col">Total</td>${tallyCells}
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:13px;color:var(--muted);">Tap <strong>Detailed</strong> above for vote tallies and dish suggestions per day.</div>`;
+}
+
+async function renderParentDayBlock(dd) {
+  const dateStr = toDateStr(dd.date);
+
+  // Votes
+  const { data: votes } = await sb.from('dinner_votes')
+    .select('option_id, dinner_options(dish_name)')
+    .eq('household_id', SESSION.householdId)
+    .eq('dinner_date', dateStr);
+  const tally = {};
+  (votes||[]).forEach(v => { const n = v.dinner_options?.dish_name||'Unknown'; tally[n]=(tally[n]||0)+1; });
+  const sorted = Object.entries(tally).sort((a,b)=>b[1]-a[1]);
+  const total = sorted.reduce((s,[,c])=>s+c,0);
+
+  const winnerEl = document.getElementById('winner-' + dd.dayKey);
+  if (winnerEl) {
+    winnerEl.innerHTML = !sorted.length
+      ? `<div class="empty" style="padding:12px 0 16px"><div class="icon">⏳</div><p>No votes yet for ${dd.label}.</p></div>`
+      : `<div class="winner-card"><div class="label">${dd.label} ${toShort(dd.date)} — top suggested dish</div><div class="dish">${esc(sorted[0][0])}</div><div class="votes">${sorted[0][1]} of ${total} vote${total!==1?'s':''}</div></div>`;
+  }
+
+  const tallyEl = document.getElementById('tally-' + dd.dayKey);
+  if (tallyEl) {
+    tallyEl.innerHTML = !sorted.length
+      ? `<p style="color:var(--muted);font-size:15px;margin-bottom:16px;">No votes yet.</p>`
+      : sorted.map(([name,count])=>`
+        <div class="tally-row">
+          <div class="name">${esc(name)}</div>
+          <div class="tally-bar-wrap"><div class="tally-bar" style="width:${Math.round((count/sorted[0][1])*100)}%"></div></div>
+          <div class="tally-count">${count}</div>
+        </div>`).join('') + '<div style="margin-bottom:16px"></div>';
+  }
+
+  // Attendance
+  const { data: attendRows } = await sb.from('dinner_attendance')
+    .select('member_name,response')
+    .eq('household_id', SESSION.householdId)
+    .eq('dinner_date', dateStr);
+  const attendMap = {};
+  (attendRows||[]).forEach(r => { attendMap[r.member_name]=r.response; });
+
+  const gridEl = document.getElementById('attend-grid-' + dd.dayKey);
+  if (gridEl) {
+    gridEl.innerHTML = (SESSION.members||[]).map(m => {
+      const resp = attendMap[m]||null;
+      const cls = resp==='yes'?'yes':resp==='no'?'no':'pending';
+      const lbl = resp==='yes'?'✓ Eating':resp==='no'?'✗ Not eating':'— Not yet responded';
+      return `<div class="attend-card"><div class="member-name">${esc(m)}</div><span class="attend-status ${cls}">${lbl}</span></div>`;
+    }).join('');
+  }
+}
+
+// ══════════════════════════════════════════
+// BANNER PHOTO — inline crop in settings
+// ══════════════════════════════════════════
+let sCrop = { scale:1, ox:0, oy:0, dragging:false, lastX:0, lastY:0, imgW:0, imgH:0, loaded:false };
+
+function settingsLoadPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById('settings-crop-img');
+    img.onload = () => {
+      sCrop = { scale:1, ox:0, oy:0, dragging:false, lastX:0, lastY:0, imgW:img.naturalWidth, imgH:img.naturalHeight, loaded:true };
+      document.getElementById('settings-zoom').value = 1;
+      img.style.display = 'block';
+      document.getElementById('settings-photo-empty').style.display = 'none';
+      document.getElementById('settings-zoom-row').style.display = 'flex';
+      document.getElementById('settings-apply-btn').style.display = 'inline-flex';
+      document.getElementById('settings-crop-label').style.display = 'block';
+      settingsFitCrop();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+  input.value = '';
+}
+
+function settingsFitCrop() {
+  const wrap = document.getElementById('settings-crop-wrap');
+  const img  = document.getElementById('settings-crop-img');
+  if (!img || !sCrop.loaded) return;
+  const ww = wrap.clientWidth, wh = wrap.clientHeight;
+  const baseScale = Math.max(ww / sCrop.imgW, wh / sCrop.imgH);
+  const scale = baseScale * sCrop.scale;
+  const sw = sCrop.imgW * scale, sh = sCrop.imgH * scale;
+  img.style.width  = sw + 'px';
+  img.style.height = sh + 'px';
+  img.style.left   = ((ww - sw) / 2 + sCrop.ox) + 'px';
+  img.style.top    = ((wh - sh) / 2 + sCrop.oy) + 'px';
+}
+
+function settingsUpdateZoom() {
+  sCrop.scale = parseFloat(document.getElementById('settings-zoom').value);
+  settingsFitCrop();
+}
+
+function sCropDown(e) {
+  sCrop.dragging = true;
+  const pt = e.touches ? e.touches[0] : e;
+  sCrop.lastX = pt.clientX; sCrop.lastY = pt.clientY;
+}
+function sCropMove(e) {
+  if (!sCrop.dragging) return;
+  e.preventDefault();
+  const pt = e.touches ? e.touches[0] : e;
+  sCrop.ox += pt.clientX - sCrop.lastX;
+  sCrop.oy += pt.clientY - sCrop.lastY;
+  sCrop.lastX = pt.clientX; sCrop.lastY = pt.clientY;
+  settingsFitCrop();
+}
+function sCropUp() { sCrop.dragging = false; }
+
+async function settingsApplyCrop() {
+  const wrap = document.getElementById('settings-crop-wrap');
+  const img  = document.getElementById('settings-crop-img');
+  const ww = wrap.clientWidth, wh = wrap.clientHeight;
+  const canvas = document.createElement('canvas');
+  const px = 2;
+  canvas.width = ww * px; canvas.height = wh * px;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(px, px);
+  ctx.drawImage(img, parseFloat(img.style.left), parseFloat(img.style.top),
+    parseFloat(img.style.width), parseFloat(img.style.height));
+
+  const applyBtn = document.getElementById('settings-apply-btn');
+  applyBtn.innerHTML = '<span class="spinner"></span>';
+  applyBtn.disabled = true;
+
+  // Upload cropped canvas to Supabase storage
+  const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+  const path = `banners/${SESSION.householdId}-${Date.now()}.jpg`;
+  const { error } = await sb.storage.from('family-photos').upload(path, blob, { upsert: false, cacheControl: '3600', contentType: 'image/jpeg' });
+
+  applyBtn.innerHTML = 'Apply crop';
+  applyBtn.disabled = false;
+
+  if (error) { showToast('Photo upload failed: ' + error.message, 'error'); return; }
+  const { data: urlData } = sb.storage.from('family-photos').getPublicUrl(path);
+  const url = urlData.publicUrl;
+
+  await sb.from('households').update({ banner_url: url }).eq('id', SESSION.householdId);
+  SESSION.bannerUrl = url;
+  localStorage.setItem('dinnerCircleSession', JSON.stringify(SESSION));
+
+  document.getElementById('banner-img').src = url;
+  document.getElementById('banner-img').style.display = 'block';
+  document.getElementById('banner-placeholder').style.display = 'none';
+  showToast('Family photo updated! 🖼️', 'success');
+}
+
+// ══════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════
+function markDirty() {
+  const btn = document.getElementById('save-settings-btn');
+  const hint = document.getElementById('unsaved-hint');
+  if (btn) btn.classList.add('dirty');
+  if (hint) hint.classList.add('show');
+}
+function clearDirty() {
+  const btn = document.getElementById('save-settings-btn');
+  const hint = document.getElementById('unsaved-hint');
+  if (btn) btn.classList.remove('dirty');
+  if (hint) hint.classList.remove('show');
+}
+
+function loadSettingsForm() {
+  document.getElementById('settings-name').value = SESSION.familyName || '';
+  settingsMembers = [...(SESSION.members || [])];
+  renderSettingsMemberTags();
+  const days = SESSION.dinnerDays || [];
+  ['mon','tue','wed','thu','fri','sat','sun'].forEach(d => {
+    const el = document.getElementById('s-' + d);
+    if (el) el.checked = days.includes(d);
+  });
+  const mealTypes = SESSION.mealTypes || ['dinner'];
+  ['breakfast','lunch','dinner'].forEach(m => {
+    const el = document.getElementById('s-' + m);
+    if (el) el.checked = mealTypes.includes(m);
+  });
+
+  // Load current banner into inline crop preview
+  const currentUrl = SESSION.bannerUrl;
+  if (currentUrl && !sCrop.loaded) {
+    const img = document.getElementById('settings-crop-img');
+    if (img) {
+      img.onload = () => {
+        sCrop = { scale:1, ox:0, oy:0, dragging:false, lastX:0, lastY:0, imgW:img.naturalWidth, imgH:img.naturalHeight, loaded:true };
+        img.style.display = 'block';
+        const empty = document.getElementById('settings-photo-empty');
+        if (empty) empty.style.display = 'none';
+        settingsFitCrop();
+      };
+      img.src = currentUrl;
+    }
+  }
+
+  // Attach crop drag listeners once
+  const cw = document.getElementById('settings-crop-wrap');
+  if (cw && !cw.dataset.listeners) {
+    cw.dataset.listeners = '1';
+    cw.addEventListener('mousedown',  sCropDown);
+    cw.addEventListener('mousemove',  sCropMove);
+    cw.addEventListener('mouseup',    sCropUp);
+    cw.addEventListener('mouseleave', sCropUp);
+    cw.addEventListener('touchstart', sCropDown, {passive:true});
+    cw.addEventListener('touchmove',  sCropMove, {passive:false});
+    cw.addEventListener('touchend',   sCropUp);
+  }
+
+  clearDirty();
+  setTimeout(() => {
+    const nameEl = document.getElementById('settings-name');
+    if (nameEl && !nameEl.dataset.dirty) {
+      nameEl.dataset.dirty = '1';
+      nameEl.addEventListener('input', markDirty);
+    }
+    document.querySelectorAll('#settings-day-checks .day-check').forEach(el => {
+      if (!el.dataset.dirty) { el.dataset.dirty = '1'; el.addEventListener('change', markDirty); }
+    });
+    document.querySelectorAll('#settings-meal-checks .meal-check').forEach(el => {
+      if (!el.dataset.dirty) { el.dataset.dirty = '1'; el.addEventListener('change', markDirty); }
+    });
+  }, 50);
+}
+
+function renderSettingsMemberTags() {
+  const wrap = document.getElementById('settings-member-tags');
+  wrap.innerHTML = settingsMembers.map((m,i) =>
+    `<div class="member-tag">${esc(m)}<span class="remove" data-idx="${i}">✕</span></div>`
+  ).join('');
+  wrap.querySelectorAll('.remove').forEach(el => {
+    el.addEventListener('click', () => {
+      settingsMembers.splice(parseInt(el.dataset.idx), 1);
+      renderSettingsMemberTags();
+    });
+  });
+}
+
+function addSettingsMember() {
+  const val = document.getElementById('settings-member-input').value.trim();
+  if (!val || settingsMembers.includes(val)) return;
+  settingsMembers.push(val);
+  renderSettingsMemberTags();
+  document.getElementById('settings-member-input').value = '';
+  markDirty();
+}
+
+function removeSettingsMember(name) {
+  settingsMembers = settingsMembers.filter(m => m !== name);
+  renderSettingsMemberTags();
+}
+
+async function saveSettings() {
+  const name = document.getElementById('settings-name').value.trim();
+  const days = [...document.querySelectorAll('#settings-day-checks .day-check:checked')].map(c => c.value);
+  if (!name) { showToast('Enter a family name', 'error'); return; }
+  if (!days.length) { showToast('Select at least one dinner day', 'error'); return; }
+  if (!settingsMembers.length) { showToast('Add at least one member', 'error'); return; }
+
+  const mealTypes = [...document.querySelectorAll('#settings-meal-checks .meal-check:checked')].map(c => c.value);
+  const { error } = await sb.from('households').update({ name, dinner_days: days, meal_types: mealTypes.length ? mealTypes : ['dinner'] }).eq('id', SESSION.householdId);
+  if (error) { showToast('Error saving: ' + error.message, 'error'); return; }
+
+  // Sync members
+  await sb.from('household_members').delete().eq('household_id', SESSION.householdId);
+  await sb.from('household_members').insert(settingsMembers.map(n => ({ household_id: SESSION.householdId, name: n })));
+
+  SESSION.familyName = name;
+  SESSION.dinnerDays = [...new Set(days)];
+  SESSION.mealTypes = mealTypes.length ? mealTypes : ['dinner'];
+  SESSION.members = settingsMembers;
+  localStorage.setItem('dinnerCircleSession', JSON.stringify(SESSION));
+
+  document.getElementById('app-family-name').textContent = name;
+  renderNameChips();
+  renderHistoryNameChips();
+  populateAddOptionSelect();
+  buildDinnerDaysUI();
+
+  // Switch to This Week tab so user sees the updated days immediately
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-vote').classList.add('active');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => { if (t.textContent.includes('This Week')) t.classList.add('active'); });
+
+  clearDirty();
+  showToast('Settings saved! Showing updated dinner days.', 'success');
+}
+
+// ══════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════
+function switchTab(tab, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + tab).classList.add('active');
+  // Only add active class to tab bar buttons (not the settings icon in banner)
+  if (el && el.classList.contains('tab')) el.classList.add('active');
+  if (tab === 'parent') renderParentView();
+  if (tab === 'settings') loadSettingsForm();
+  if (tab === 'history') renderFullHistory(historyData, 'history-list');
+}
+
+// ══════════════════════════════════════════
+// MODAL / TOAST / UTIL
+// ══════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(bg =>
+  bg.addEventListener('click', e => { if (e.target === bg) bg.classList.remove('open'); })
+);
+// ── BACK TO TOP ───────────────────────────────────────────
+window.addEventListener('scroll', () => {
+  const btn = document.getElementById('back-to-top');
+  if (btn) btn.classList.toggle('visible', window.scrollY > 300);
+});
+
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
