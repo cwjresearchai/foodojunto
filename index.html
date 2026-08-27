@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>FoodoJunto</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgMTAwIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjIwIiBmaWxsPSIjRTg3NzIyIi8+PHRleHQgeT0iNzIiIHg9IjUwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LXNpemU9IjU4IiBmb250LWZhbWlseT0iQXJpYWwiPvCfpZg8L3RleHQ+PC9zdmc+"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+<meta name="theme-color" content="#E87722"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="FoodoJunto"/>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -691,6 +697,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     loader.classList.add('hidden');
     setTimeout(() => loader.style.display = 'none', 350);
   }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
 });
 
 async function refreshSession() {
@@ -1104,7 +1114,7 @@ function buildDinnerDaysUI() {
 // ══════════════════════════════════════════
 function renderNameChips() {
   document.getElementById('name-chips').innerHTML = (SESSION.members||[]).map(m =>
-    `<button class="chip" onclick="selectMember('${esc(m)}',this)">${esc(m)}</button>`
+    `<button class="chip" onclick="selectMember('${escJs(m)}',this)">${esc(m)}</button>`
   ).join('');
   // Auto-select saved member
   if (SESSION.memberName) {
@@ -1148,7 +1158,7 @@ function renderHistoryNameChips() {
   const wrap = document.getElementById('history-name-chips');
   if (!wrap) return;
   wrap.innerHTML = (SESSION.members||[]).map(m =>
-    `<button class="chip${m===historyMember?' active':''}" onclick="selectHistoryMember('${esc(m)}',this)">${esc(m)}</button>`
+    `<button class="chip${m===historyMember?' active':''}" onclick="selectHistoryMember('${escJs(m)}',this)">${esc(m)}</button>`
   ).join('');
 }
 
@@ -1390,7 +1400,7 @@ async function loadDishSuggestions(dayKey) {
 
   const chips = document.getElementById('ds-chips');
   chips.innerHTML = top.map(s =>
-    `<button class="ds-chip" onclick="pickDishSuggestion('${esc(s.name)}')">${esc(s.name)}</button>`
+    `<button class="ds-chip" onclick="pickDishSuggestion('${escJs(s.name)}')">${esc(s.name)}</button>`
   ).join('');
   document.getElementById('dish-suggestions').style.display = 'block';
 }
@@ -1464,7 +1474,7 @@ async function renderFullHistory(items, targetId) {
           </div>
         </div>
         <div class="meal-card-actions">
-          <button class="edit-btn" onclick="editMeal('${d.id}','${esc(d.dish_name)}','${d.date}','${esc(d.notes||'')}')">✏️ Edit</button>
+          <button class="edit-btn" onclick="editMeal('${d.id}','${escJs(d.dish_name)}','${d.date}','${escJs(d.notes||'')}')">✏️ Edit</button>
           <button class="del-btn" onclick="deleteMeal('${d.id}')">🗑 Delete</button>
         </div>
         <div class="ratings-section">
@@ -1625,7 +1635,7 @@ async function openLogDinner() {
   (hist||[]).forEach(r => { const k=r.dish_name.trim(); if(!seen.has(k.toLowerCase())){seen.add(k.toLowerCase());top.push(k);} });
   if (top.length) {
     document.getElementById('log-ds-chips').innerHTML = top.slice(0,8).map(n =>
-      `<button class="ds-chip" style="padding:5px 12px;background:var(--cream);border:1.5px solid var(--border);border-radius:20px;font-size:13px;cursor:pointer;font-family:var(--ff-body);" onclick="document.getElementById('log-dish-name').value='${esc(n)}';document.getElementById('log-ds-wrap').style.display='none'">${esc(n)}</button>`
+      `<button class="ds-chip" style="padding:5px 12px;background:var(--cream);border:1.5px solid var(--border);border-radius:20px;font-size:13px;cursor:pointer;font-family:var(--ff-body);" onclick="document.getElementById('log-dish-name').value='${escJs(n)}';document.getElementById('log-ds-wrap').style.display='none'">${esc(n)}</button>`
     ).join('');
     document.getElementById('log-ds-wrap').style.display = 'block';
   }
@@ -2140,6 +2150,10 @@ function showToast(msg, type) {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+// For values interpolated into a single-quoted JS argument inside an inline onclick="..." attribute.
+// HTML entities are decoded by the browser before the attribute is parsed as JS, so esc() alone
+// does not protect against a literal apostrophe (e.g. "Mom's") breaking out of the JS string.
+function escJs(s){return esc(String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\r?\n/g,'\\n'));}
 </script>
 </body>
 </html>
