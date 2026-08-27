@@ -647,6 +647,7 @@ let historyMember = null;
 let historyData = [];
 let createMembers = [];
 let settingsMembers = [];
+let pendingBannerFile = null;
 
 // ══════════════════════════════════════════
 // BOOT
@@ -778,6 +779,36 @@ function generateCode() {
 
 
 
+function previewBannerPhoto(input, previewImgId, areaId) {
+  if (!input.files || !input.files[0]) return;
+  pendingBannerFile = input.files[0];
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById(previewImgId);
+    img.src = e.target.result;
+    img.style.display = 'block';
+    const area = document.getElementById(areaId);
+    if (area) area.style.borderStyle = 'solid';
+  };
+  reader.readAsDataURL(pendingBannerFile);
+}
+
+async function uploadBannerPhoto(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  input.value = '';
+  const url = await uploadBannerToStorage(file, SESSION.householdId);
+  if (!url) return; // uploadBannerToStorage already showed an error toast
+  const { error } = await sb.from('households').update({ banner_url: url }).eq('id', SESSION.householdId);
+  if (error) { showToast('Photo uploaded but failed to save: ' + error.message, 'error'); return; }
+  SESSION.bannerUrl = url;
+  localStorage.setItem('dinnerCircleSession', JSON.stringify(SESSION));
+  document.getElementById('banner-img').src = url;
+  document.getElementById('banner-img').style.display = 'block';
+  document.getElementById('banner-placeholder').style.display = 'none';
+  showToast('Family photo updated! 🖼️', 'success');
+}
+
 async function uploadBannerToStorage(file, householdId) {
   const ext = file.name.split('.').pop();
   // Use a timestamp to avoid filename conflicts and cache issues
@@ -817,11 +848,15 @@ async function createHousehold() {
   let bannerUrl = null;
   if (pendingBannerFile) {
     bannerUrl = await uploadBannerToStorage(pendingBannerFile, hh.id);
-    if (bannerUrl) await sb.from('households').update({ banner_url: bannerUrl }).eq('id', hh.id);
+    if (bannerUrl) {
+      const { error: bannerErr } = await sb.from('households').update({ banner_url: bannerUrl }).eq('id', hh.id);
+      if (bannerErr) { showToast('Household created, but the photo failed to save: ' + bannerErr.message, 'error'); bannerUrl = null; }
+    }
   }
 
   // Insert members
-  await sb.from('household_members').insert(createMembers.map(n => ({ household_id: hh.id, name: n })));
+  const { error: memErr } = await sb.from('household_members').insert(createMembers.map(n => ({ household_id: hh.id, name: n })));
+  if (memErr) { showToast('Error saving members: ' + memErr.message, 'error'); btn.innerHTML = 'Create household →'; btn.disabled = false; return; }
 
   btn.innerHTML = 'Create household →'; btn.disabled = false;
 
@@ -1960,7 +1995,8 @@ async function settingsApplyCrop() {
   const { data: urlData } = sb.storage.from('family-photos').getPublicUrl(path);
   const url = urlData.publicUrl;
 
-  await sb.from('households').update({ banner_url: url }).eq('id', SESSION.householdId);
+  const { error: dbErr } = await sb.from('households').update({ banner_url: url }).eq('id', SESSION.householdId);
+  if (dbErr) { showToast('Photo uploaded but failed to save: ' + dbErr.message, 'error'); return; }
   SESSION.bannerUrl = url;
   localStorage.setItem('dinnerCircleSession', JSON.stringify(SESSION));
 
@@ -2084,9 +2120,24 @@ async function saveSettings() {
   const { error } = await sb.from('households').update({ name, dinner_days: days, meal_types: mealTypes.length ? mealTypes : ['dinner'] }).eq('id', SESSION.householdId);
   if (error) { showToast('Error saving: ' + error.message, 'error'); return; }
 
-  // Sync members
-  await sb.from('household_members').delete().eq('household_id', SESSION.householdId);
-  await sb.from('household_members').insert(settingsMembers.map(n => ({ household_id: SESSION.householdId, name: n })));
+  // Sync members — only touch what actually changed, so a transient failure
+  // can't wipe the whole roster (and the household is never left with 0 members
+  // in between, unlike a delete-all-then-insert-all approach).
+  const previousMembers = new Set(SESSION.members || []);
+  const updatedMembers  = new Set(settingsMembers);
+  const membersToRemove = [...previousMembers].filter(m => !updatedMembers.has(m));
+  const membersToAdd    = settingsMembers.filter(m => !previousMembers.has(m));
+
+  if (membersToRemove.length) {
+    const { error: rmErr } = await sb.from('household_members').delete()
+      .eq('household_id', SESSION.householdId).in('name', membersToRemove);
+    if (rmErr) { showToast('Error removing members: ' + rmErr.message, 'error'); return; }
+  }
+  if (membersToAdd.length) {
+    const { error: addErr } = await sb.from('household_members')
+      .insert(membersToAdd.map(n => ({ household_id: SESSION.householdId, name: n })));
+    if (addErr) { showToast('Error adding members: ' + addErr.message, 'error'); return; }
+  }
 
   SESSION.familyName = name;
   SESSION.dinnerDays = [...new Set(days)];
@@ -2104,7 +2155,6 @@ async function saveSettings() {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-vote').classList.add('active');
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t => { if (t.textContent.includes('This Week')) t.classList.add('active'); });
 
   clearDirty();
